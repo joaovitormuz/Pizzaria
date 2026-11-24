@@ -7,3 +7,5 @@
 # configuraçoes do Django
 
 # ajustando Django
+
+# Criação de Models e Teste De Server

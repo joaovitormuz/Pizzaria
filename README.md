@@ -9,3 +9,5 @@
 # ajustando Django
 
 # Criação de Models e Teste De Server
+
+# Atualização do Admin.py

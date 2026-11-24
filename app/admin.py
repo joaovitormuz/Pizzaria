@@ -1,5 +1,7 @@
 
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+
 from .models import (
     Usuario,
     Cliente,
@@ -14,134 +16,158 @@ from .models import (
     ItemPedido,
     Pagamento,
     ProcessamentoPedido,
-    Entrega
+    Entrega,
 )
 
 
+# Usuário e autenticação
 @admin.register(Usuario)
-class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nome', 'email', 'numero_telefone')
-    search_fields = ('nome', 'email')
+class UsuarioAdmin(UserAdmin):
+    model = Usuario
+
+    list_display = (
+        'username',
+        'nome',
+        'email',
+        'numero_telefone',
+        'is_staff',
+    )
+
+    search_fields = ('username', 'nome', 'email')
+    ordering = ('username',)
+
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Informações pessoais', {
+            'fields': ('nome', 'email', 'numero_telefone', 'endereco')
+        }),
+        ('Permissões', {
+            'fields': (
+                'is_active',
+                'is_staff',
+                'is_superuser',
+                'groups',
+                'user_permissions',
+            )
+        }),
+        ('Datas importantes', {
+            'fields': ('last_login', 'date_joined')
+        }),
+    )
+
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': (
+                'username',
+                'nome',
+                'email',
+                'numero_telefone',
+                'endereco',
+                'password1',
+                'password2',
+                'is_staff',
+                'is_superuser',
+            ),
+        }),
+    )
 
 
+# Clientes
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nome', 'email', 'numero_telefone')
-    search_fields = ('nome', 'email')
+    list_display = ('username', 'nome', 'email', 'numero_telefone')
+    search_fields = ('username', 'nome', 'email')
 
 
+# Funcionários
 @admin.register(Funcionario)
 class FuncionarioAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nome', 'email', 'funcao', 'salario')
+    list_display = ('username', 'nome', 'funcao', 'salario', 'disponibilidade')
+    search_fields = ('username', 'nome', 'funcao')
     list_filter = ('disponibilidade', 'funcao')
-    search_fields = ('nome', 'email')
 
 
+# Entregadores
 @admin.register(Entregador)
 class EntregadorAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nome', 'email', 'taxa_entrega', 'disponibilidade')
+    list_display = ('username', 'nome', 'taxa_entrega', 'disponibilidade')
+    search_fields = ('username', 'nome')
     list_filter = ('disponibilidade',)
-    search_fields = ('nome', 'email')
 
 
+# Pizzaria
 @admin.register(Pizzaria)
 class PizzariaAdmin(admin.ModelAdmin):
-    list_display = ('id_pizzaria', 'nome', 'email')
+    list_display = ('nome', 'email', 'numero_telefone')
+    search_fields = ('nome',)
 
 
+# Ingredientes
 @admin.register(Ingrediente)
 class IngredienteAdmin(admin.ModelAdmin):
-    list_display = ('id_ingrediente', 'nome', 'tipo', 'unidade_medida')
-    search_fields = ('nome',)
+    list_display = ('nome', 'tipo', 'unidade_medida')
+    search_fields = ('nome', 'tipo')
 
 
+# Estoque
 @admin.register(Estoque)
 class EstoqueAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_estoque',
-        'ingrediente',
-        'quantidade_estoque',
-        'quantidade_minima'
-    )
+    list_display = ('ingrediente', 'quantidade_estoque',
+                    'quantidade_minima', 'data_atualizacao')
 
 
+# Produtos
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_produto',
-        'nome',
-        'categoria',
-        'preco',
-        'disponibilidade'
-    )
+    list_display = ('nome', 'categoria', 'preco', 'disponibilidade')
+    search_fields = ('nome', 'categoria')
     list_filter = ('categoria', 'disponibilidade')
-    search_fields = ('nome',)
 
 
+# Receitas
 @admin.register(Receita)
 class ReceitaAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_receita',
-        'produto',
-        'ingrediente',
-        'quantidade_medida'
-    )
+    list_display = ('produto', 'ingrediente',
+                    'quantidade_medida', 'unidade_medida')
+    search_fields = ('produto__nome', 'ingrediente__nome')
 
 
+# Pedidos
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_pedido',
-        'cliente',
-        'data_hora',
-        'status',
-        'preco_total'
-    )
-    list_filter = ('status', 'tipo_entrega')
-    search_fields = ('id_pedido', 'cliente__nome')
+    list_display = ('id_pedido', 'cliente', 'data_hora',
+                    'status', 'preco_total', 'tipo_entrega')
+    search_fields = ('cliente__nome',)
+    list_filter = ('status', 'tipo_entrega', 'data_hora')
 
 
+# Itens dos pedidos
 @admin.register(ItemPedido)
 class ItemPedidoAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_item',
-        'pedido',
-        'produto',
-        'quantidade',
-        'subtotal'
-    )
+    list_display = ('id_item', 'pedido', 'produto',
+                    'quantidade', 'preco_unitario', 'subtotal')
 
 
+# Pagamentos
 @admin.register(Pagamento)
 class PagamentoAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_pagamento',
-        'pedido',
-        'valor',
-        'metodo_pagamento',
-        'status_pagamento'
-    )
-    list_filter = ('status_pagamento',)
+    list_display = ('id_pagamento', 'pedido', 'valor',
+                    'metodo_pagamento', 'status_pagamento')
+    list_filter = ('metodo_pagamento', 'status_pagamento')
 
 
+# Processamento dos pedidos
 @admin.register(ProcessamentoPedido)
 class ProcessamentoPedidoAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_processamento',
-        'pedido',
-        'funcionario',
-        'status_preparacao'
-    )
+    list_display = ('id_processamento', 'pedido', 'funcionario',
+                    'status_preparacao', 'data_inicio', 'data_fim')
     list_filter = ('status_preparacao',)
 
 
+# Entregas
 @admin.register(Entrega)
 class EntregaAdmin(admin.ModelAdmin):
-    list_display = (
-        'id_entrega',
-        'pedido',
-        'entregador',
-        'status_entrega',
-        'taxa_entrega'
-    )
+    list_display = ('id_entrega', 'pedido', 'entregador',
+                    'status_entrega', 'taxa_entrega')
     list_filter = ('status_entrega',)

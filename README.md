@@ -5,3 +5,5 @@
 # configuraçoes do ambiente virtual
 
 # configuraçoes do Django
+
+# ajustando Django

@@ -1,4 +1,5 @@
 
+```html
 {% extends 'base.html' %}
 
 {% block title %}Início - Pizzaria{% endblock %}
@@ -18,6 +19,9 @@
                 <h2>👥</h2>
                 <h5>Clientes</h5>
                 <p>Gerenciamento de clientes.</p>
+                <a href="{% url 'listar_clientes' %}" class="btn btn-danger">
+                    Acessar
+                </a>
             </div>
         </div>
     </div>
@@ -75,3 +79,4 @@
 </div>
 
 {% endblock %}
+```

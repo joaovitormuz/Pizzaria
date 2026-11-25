@@ -17,3 +17,5 @@
 # Configuração Postgrees em casa (talves de problema ao abrir em outro pc , pois a a pasta .venv foi recriada)
 
 # criação do template base e do template home , confirguração do urls.py para enviar diretamente a pagina home ao iniciar
+
+# criação do template clientes 

@@ -13,3 +13,5 @@
 # Atualização do Admin.py
 
 # teste Sincronização pc Casa
+
+# Configuração Postgrees em casa (talves de problema ao abrir em outro pc , pois a a pasta .venv foi recriada)

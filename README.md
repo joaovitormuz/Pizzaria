@@ -20,3 +20,5 @@
 
 # Novo template home dividido em 4 areas
 
+# Correção de bugs do ultimo commit
+

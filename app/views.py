@@ -1,15 +1,9 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 
-from .models import Cliente
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
 from .forms import ClienteForm
 
-
-def home(request):
-    return render(request, 'home.html')
-
-from django.shortcuts import render
 
 def home(request):
     return render(request, 'home.html')
@@ -29,3 +23,25 @@ def area_entregador(request):
 
 def visao_geral(request):
     return render(request, 'areas/visao_geral.html')
+
+
+def cadastrar_cliente(request):
+    if request.method == 'POST':
+        form = ClienteForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'Cadastro realizado com sucesso! Faça seu login.'
+            )
+            return redirect('login')
+
+    else:
+        form = ClienteForm()
+
+    return render(
+        request,
+        'clientes/cadastro.html',
+        {'form': form}
+    )

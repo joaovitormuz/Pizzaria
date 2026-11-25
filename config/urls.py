@@ -16,10 +16,28 @@ urlpatterns = [
     path('entregador/', views.area_entregador, name='area_entregador'),
     path('visao-geral/', views.visao_geral, name='visao_geral'),
 
-    # Cadastro de cliente
-    path('cliente/cadastro/', views.cadastrar_cliente, name='cadastrar_cliente'),
+    # Cadastro público
+    path(
+        'cliente/cadastro/',
+        views.cadastro_publico_cliente,
+        name='cadastro_publico_cliente'
+    ),
 
-    # Autenticação
+    # Gerenciamento administrativo de clientes
+    path('clientes/', views.listar_clientes, name='listar_clientes'),
+    path('clientes/novo/', views.cadastrar_cliente, name='cadastrar_cliente'),
+    path(
+        'clientes/editar/<int:pk>/',
+        views.editar_cliente,
+        name='editar_cliente'
+    ),
+    path(
+        'clientes/excluir/<int:pk>/',
+        views.excluir_cliente,
+        name='excluir_cliente'
+    ),
+
+    # Login e logout
     path(
         'login/',
         auth_views.LoginView.as_view(
@@ -27,10 +45,20 @@ urlpatterns = [
         ),
         name='login'
     ),
-
     path(
         'logout/',
         auth_views.LogoutView.as_view(),
         name='logout'
+    ),
+    path(
+    'cliente/meus-pedidos/',
+    views.meus_pedidos,
+    name='meus_pedidos'
+    ),
+
+    path(
+    'cliente/produtos/',
+    views.produtos_disponiveis,
+    name='produtos_disponiveis'
     ),
 ]

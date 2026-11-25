@@ -1,0 +1,38 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Produtos - Pizzaria{% endblock %}
+
+{% block content %}
+
+<h1>Produtos disponíveis</h1>
+
+{% if produtos %}
+    <table>
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Preço</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for produto in produtos %}
+                <tr>
+                    <td>{{ produto.nome }}</td>
+                    <td>{{ produto.categoria }}</td>
+                    <td>{{ produto.descricao }}</td>
+                    <td>R$ {{ produto.preco }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Nenhum produto disponível no momento.</p>
+{% endif %}
+
+<a href="{% url 'area_cliente' %}">Voltar</a>
+
+{% endblock %}

@@ -1,0 +1,11 @@
+[33m5f1019c[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m criação do template clientes
+[33me35234c[m criação do template base e do template home , confirguração do urls.py para enviar diretamente a pagina home ao iniciar
+[33m199b3d3[m Configuração Postgrees em casa (talves de problema ao abrir em outro pc , pois a a pasta .venv foi recriada)
+[33mb13acf6[m teste Sincronização pc Casa
+[33mea58563[m Atualização do Admin.py
+[33mff4d4a2[m Criação de Models e Teste De Server
+[33me37d7f4[m ajustando Django
+[33mb3f6627[m configuraçoes do Django
+[33m2e80c01[m configuraçoes do ambiente virtual
+[33mad28add[m teste commit
+[33mf12ed80[m Initial commit

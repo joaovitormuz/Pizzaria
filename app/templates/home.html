@@ -12,64 +12,52 @@
 
 <div class="row g-4">
 
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body text-center">
-                <h2>👥</h2>
-                <h5>Clientes</h5>
-                <p>Gerenciamento de clientes.</p>
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'area_cliente' %}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h2>👥</h2>
+                    <h5>Área do Cliente</h5>
+                    <p>Realize pedidos e acompanhe suas compras.</p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body text-center">
-                <h2>🍕</h2>
-                <h5>Produtos</h5>
-                <p>Cadastro e consulta de produtos.</p>
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'area_pizzaria' %}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h2>🍕</h2>
+                    <h5>Área da Pizzaria</h5>
+                    <p>Gerencie produtos, clientes, funcionários e estoque.</p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body text-center">
-                <h2>📦</h2>
-                <h5>Estoque</h5>
-                <p>Controle de ingredientes e estoque.</p>
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'area_entregador' %}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h2>🚚</h2>
+                    <h5>Área do Entregador</h5>
+                    <p>Consulte e atualize suas entregas.</p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body text-center">
-                <h2>🛒</h2>
-                <h5>Pedidos</h5>
-                <p>Registro e acompanhamento de pedidos.</p>
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'visao_geral' %}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm h-100 text-center">
+                <div class="card-body">
+                    <h2>📊</h2>
+                    <h5>Visão Geral</h5>
+                    <p>Acesse o gerenciamento completo da pizzaria.</p>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body text-center">
-                <h2>💳</h2>
-                <h5>Pagamentos</h5>
-                <p>Controle dos pagamentos.</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body text-center">
-                <h2>🚚</h2>
-                <h5>Entregas</h5>
-                <p>Gerenciamento das entregas.</p>
-            </div>
-        </div>
+        </a>
     </div>
 
 </div>

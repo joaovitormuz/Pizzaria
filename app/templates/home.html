@@ -1,4 +1,5 @@
 
+```html
 {% extends 'base.html' %}
 
 {% block title %}Início - Pizzaria{% endblock %}
@@ -12,14 +13,12 @@
 
 <div class="row g-4">
 
-    <div class="col-md-6 col-lg-3">
-        <a href="{% url 'area_cliente' %}" class="text-decoration-none text-dark">
-            <div class="card shadow-sm h-100 text-center">
-                <div class="card-body">
-                    <h2>👥</h2>
-                    <h5>Área do Cliente</h5>
-                    <p>Realize pedidos e acompanhe suas compras.</p>
-                </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <h2>👥</h2>
+                <h5>Clientes</h5>
+                <p>Gerenciamento de clientes.</p>
             </div>
         </a>
     </div>
@@ -63,3 +62,4 @@
 </div>
 
 {% endblock %}
+```

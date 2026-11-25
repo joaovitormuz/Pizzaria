@@ -18,4 +18,5 @@
 
 # criação do template base e do template home , confirguração do urls.py para enviar diretamente a pagina home ao iniciar
 
-# Novo template home dividido em 4 areas 
+# Novo template home dividido em 4 areas
+

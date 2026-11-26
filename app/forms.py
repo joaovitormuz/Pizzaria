@@ -1,7 +1,7 @@
 
 from django import forms
 from .models import Cliente
-from .models import Cliente, Funcionario, Entregador
+from .models import Cliente, Funcionario, Entregador, Ingrediente, Estoque
 
 
 class ClienteForm(forms.ModelForm):
@@ -154,4 +154,46 @@ class EntregadorForm(forms.ModelForm):
 
         return entregador
 
+
+class IngredienteForm(forms.ModelForm):
+
+    class Meta:
+        model = Ingrediente
+        fields = [
+            'nome',
+            'tipo',
+            'unidade_medida'
+        ]
+
+        labels = {
+            'nome': 'Nome do ingrediente',
+            'tipo': 'Tipo',
+            'unidade_medida': 'Unidade de medida'
+        }
+
+class EstoqueForm(forms.ModelForm):
+    class Meta:
+        model = Estoque
+        fields = [
+            'ingrediente',
+            'quantidade_estoque',
+            'quantidade_minima'
+        ]
+
+        labels = {
+            'ingrediente': 'Ingrediente',
+            'quantidade_estoque': 'Quantidade disponível',
+            'quantidade_minima': 'Quantidade mínima'
+        }
+
+        widgets = {
+            'quantidade_estoque': forms.NumberInput(attrs={
+                'step': '0.001',
+                'min': '0'
+            }),
+            'quantidade_minima': forms.NumberInput(attrs={
+                'step': '0.001',
+                'min': '0'
+            })
+        }        
 

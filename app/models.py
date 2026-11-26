@@ -194,7 +194,6 @@ class Estoque(models.Model):
     def __str__(self):
         return f'Estoque: {self.ingrediente.nome}'
 
-
 # =====================================================
 # GERENCIAMENTO DE PRODUTOS
 # =====================================================

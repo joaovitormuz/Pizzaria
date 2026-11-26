@@ -19,7 +19,9 @@ from .forms import (
     AdicionarProdutoForm,
     ConfirmarPedidoForm,
     FuncionarioForm,
-    EntregadorForm
+    EntregadorForm,
+    IngredienteForm,
+    EstoqueForm
 )
 
 from .models import (
@@ -29,7 +31,10 @@ from .models import (
     ItemPedido,
     Funcionario,
     Entrega,
-    Entregador
+    Entregador,
+    Ingrediente,
+    Estoque
+    
 )
 
 
@@ -743,6 +748,80 @@ def minhas_entregas(request):
     })
 
 
+# =====================================================
+# Cadastrar Ingredientes
+# =====================================================
+@login_required
+def cadastrar_ingrediente(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    if request.method == 'POST':
+        form = IngredienteForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Ingrediente cadastrado com sucesso!')
+            return redirect('listar_ingredientes')
+    else:
+        form = IngredienteForm()
+
+    return render(request, 'estoque/cadastrar_ingrediente.html', {
+        'form': form
+    })
+
+
+# =====================================================
+# Listar Ingredientes
+# =====================================================
+@login_required
+def listar_ingredientes(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    ingredientes = Ingrediente.objects.all().order_by('nome')
+
+    return render(request, 'estoque/listar_ingredientes.html', {
+        'ingredientes': ingredientes
+    })
+
+# =====================================================
+# Listar Estoque
+# =====================================================
+@login_required
+def listar_estoque(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    estoques = Estoque.objects.select_related(
+        'ingrediente'
+    ).all().order_by('ingrediente__nome')
+
+    return render(request, 'estoque/listar_estoque.html', {
+        'estoques': estoques
+    })
+
+# =====================================================
+# Cadastrar Estoque
+# =====================================================
+@login_required
+def cadastrar_estoque(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    if request.method == 'POST':
+        form = EstoqueForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Estoque cadastrado com sucesso!')
+            return redirect('listar_estoque')
+    else:
+        form = EstoqueForm()
+
+    return render(request, 'estoque/cadastrar_estoque.html', {
+        'form': form
+    })
 
 
 

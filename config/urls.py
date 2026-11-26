@@ -129,10 +129,34 @@ urlpatterns = [
     views.atualizar_status_entrega,
     name='atualizar_status_entrega'
     ),
-    
+
     path(
     'minhas-entregas/',
     views.minhas_entregas,
     name='minhas_entregas'
+    ),
+
+    path(
+    'ingredientes/cadastrar/',
+    views.cadastrar_ingrediente,
+    name='cadastrar_ingrediente'
+    ),
+
+    path(
+    'ingredientes/',
+    views.listar_ingredientes,
+    name='listar_ingredientes'
+   ),
+   
+   path(
+    'estoque/',
+    views.listar_estoque,
+    name='listar_estoque'
+    ),
+
+    path(
+    'estoque/cadastrar/',
+    views.cadastrar_estoque,
+    name='cadastrar_estoque'
     ),
 ]

@@ -1,0 +1,71 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Minhas Entregas</h2>
+
+    <a href="{% url 'area_entregador' %}" class="btn btn-secondary mb-3">
+        Voltar à Home
+    </a>
+
+    {% if entregas %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Endereço</th>
+                    <th>Data</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for entrega in entregas %}
+                    <tr>
+                        <td>#{{ entrega.pedido.id_pedido }}</td>
+                        <td>{{ entrega.pedido.cliente.nome }}</td>
+                        <td>{{ entrega.endereco_entrega }}</td>
+                        <td>{{ entrega.pedido.data_hora|date:"d/m/Y H:i" }}</td>
+                        <td>{{ entrega.status_entrega }}</td>
+
+                        <td>
+                            {% if entrega.status_entrega == 'Pendente' %}
+                                <form method="POST"
+                                      action="{% url 'atualizar_status_entrega' entrega.id_entrega %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="Saiu para entrega">
+
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        Iniciar entrega
+                                    </button>
+                                </form>
+
+                            {% elif entrega.status_entrega == 'Saiu para entrega' %}
+                                <form method="POST"
+                                      action="{% url 'atualizar_status_entrega' entrega.id_entrega %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="Entregue">
+
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        Confirmar entrega
+                                    </button>
+                                </form>
+
+                            {% else %}
+                                Finalizada
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Você ainda não possui entregas atribuídas.</p>
+    {% endif %}
+
+</div>
+{% endblock %}

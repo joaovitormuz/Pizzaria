@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
+from django.utils import timezone
 
 from django.db import transaction
 from .models import Cliente, Pedido, Produto, ItemPedido
@@ -12,6 +13,52 @@ from .forms import (
     ConfirmarPedidoForm
 )
 from .models import Cliente, Pedido, Produto, ItemPedido, Funcionario
+from .forms import ClienteForm, AdicionarProdutoForm, ConfirmarPedidoForm, FuncionarioForm
+from .forms import (
+    ClienteForm,
+    AdicionarProdutoForm,
+    ConfirmarPedidoForm,
+    FuncionarioForm,
+    EntregadorForm
+)
+
+from .models import (
+    Cliente,
+    Pedido,
+    Produto,
+    ItemPedido,
+    Funcionario,
+    Entrega,
+    Entregador
+)
+
+
+# Direcionamento por tipo de usuario
+
+
+from django.contrib.auth.views import LoginView
+
+class LoginPerfilView(LoginView):
+    template_name = 'usuarios/login.html'
+    redirect_authenticated_user = True
+
+    def get_success_url(self):
+        usuario = self.request.user
+
+        if usuario.is_superuser:
+            return '/visao-geral/'
+
+        if hasattr(usuario, 'entregador'):
+            return '/entregador/'
+
+        if usuario.is_staff:
+            return '/pizzaria/'
+
+        if hasattr(usuario, 'cliente'):
+            return '/cliente/'
+
+        return '/'
+
 
 
 # =====================================================
@@ -95,6 +142,57 @@ def cadastro_publico_cliente(request):
             'publico': True
         }
     )
+
+
+# =====================================================
+# Cadastro Funcionario
+# =====================================================
+
+@login_required
+def cadastrar_funcionario(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    if request.method == 'POST':
+        form = FuncionarioForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Funcionário cadastrado com sucesso!')
+            return redirect('area_pizzaria')
+    else:
+        form = FuncionarioForm()
+
+    return render(request, 'funcionarios/formulario.html', {
+        'form': form,
+        'titulo': 'Cadastrar Funcionário'
+    })
+
+# =====================================================
+# Cadastro Entregador
+# =====================================================
+@login_required
+def cadastrar_entregador(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    if request.method == 'POST':
+        form = EntregadorForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'Entregador cadastrado com sucesso!'
+            )
+            return redirect('area_pizzaria')
+    else:
+        form = EntregadorForm()
+
+    return render(request, 'entregadores/formulario.html', {
+        'form': form,
+        'titulo': 'Cadastrar Entregador'
+    })
 
 
 # =====================================================
@@ -296,7 +394,7 @@ def adicionar_ao_carrinho(request, pk):
 
     return redirect('produtos_disponiveis')
 
-    # =====================================================
+ # =====================================================
 # VISUALIZAR CARRINHO
 # =====================================================
 
@@ -388,6 +486,13 @@ def confirmar_pedido(request):
                         )
 
                     pedido.calcularTotal()
+
+                    if pedido.tipo_entrega == 'Entrega':
+                     Entrega.objects.create(
+                     pedido=pedido,
+                     endereco_entrega=pedido.endereco_entrega,
+                     taxa_entrega=0
+                     )
 
                 del request.session['carrinho']
 
@@ -503,3 +608,142 @@ def cancelar_pedido(request, pk):
             )
 
     return redirect('listar_pedidos')
+
+# =====================================================
+# listar entregas
+# =====================================================
+@login_required
+def listar_entregas(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    entregas = Entrega.objects.select_related(
+        'pedido',
+        'pedido__cliente',
+        'entregador'
+    ).all().order_by('-id_entrega')
+
+    return render(request, 'entregas/listar.html', {
+    'entregas': entregas,
+    'entregadores': Entregador.objects.filter(disponibilidade=True)
+    })
+
+# =====================================================
+# Atribuir Entregas a entregadores
+# =====================================================
+@login_required
+def atribuir_entregador(request, id_entrega):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    entrega = get_object_or_404(Entrega, pk=id_entrega)
+
+    if request.method == 'POST':
+        entregador_id = request.POST.get('entregador')
+
+        entregador = get_object_or_404(
+            Entregador,
+            pk=entregador_id,
+            disponibilidade=True
+        )
+
+        if entrega.status_entrega != 'Pendente':
+            messages.error(
+                request,
+                'Não é possível alterar o entregador desta entrega.'
+            )
+            return redirect('listar_entregas')
+
+        entrega.entregador = entregador
+        entrega.save(update_fields=['entregador'])
+
+        entregador.disponibilidade = False
+        entregador.save(update_fields=['disponibilidade'])
+
+        messages.success(
+            request,
+            'Entregador atribuído com sucesso!'
+        )
+
+        return redirect('listar_entregas')
+
+    return redirect('listar_entregas')
+
+
+# =====================================================
+# Atualiza as disponibilidades do entregador
+# =====================================================
+@login_required
+def atualizar_status_entrega(request, id_entrega):
+    if not hasattr(request.user, 'entregador'):
+        return HttpResponseForbidden('Acesso exclusivo para entregadores.')
+
+    if request.method != 'POST':
+        return redirect('area_entregador')
+
+    entrega = get_object_or_404(
+        Entrega,
+        pk=id_entrega,
+        entregador=request.user.entregador
+    )
+
+    novo_status = request.POST.get('status')
+
+    if novo_status == 'Saiu para entrega':
+        if entrega.status_entrega != 'Pendente':
+            messages.error(request, 'Status inválido.')
+            return redirect('area_entregador')
+
+        entrega.status_entrega = 'Saiu para entrega'
+        entrega.data_saida = timezone.now()
+        entrega.pedido.status = 'Em entrega'
+
+    elif novo_status == 'Entregue':
+        if entrega.status_entrega != 'Saiu para entrega':
+            messages.error(request, 'A entrega ainda não saiu.')
+            return redirect('area_entregador')
+
+        entrega.status_entrega = 'Entregue'
+        entrega.data_entrega = timezone.now()
+        entrega.pedido.status = 'Concluído'
+
+        entregador = entrega.entregador
+        entregador.disponibilidade = True
+        entregador.save(update_fields=['disponibilidade'])
+
+    else:
+        messages.error(request, 'Status inválido.')
+        return redirect('area_entregador')
+
+    entrega.save()
+    entrega.pedido.save(update_fields=['status'])
+
+    messages.success(request, 'Status da entrega atualizado!')
+    return redirect('area_entregador')
+
+# =====================================================
+# Entregadores podem visualizar as entregas atribuidas a eles
+# =====================================================
+@login_required
+def minhas_entregas(request):
+    if not hasattr(request.user, 'entregador'):
+        return HttpResponseForbidden(
+            'Esta funcionalidade é exclusiva para entregadores.'
+        )
+
+    entregas = Entrega.objects.filter(
+        entregador=request.user.entregador
+    ).select_related(
+        'pedido',
+        'pedido__cliente'
+    ).order_by('-id_entrega')
+
+    return render(request, 'entregadores/minhas_entregas.html', {
+        'entregas': entregas
+    })
+
+
+
+
+
+

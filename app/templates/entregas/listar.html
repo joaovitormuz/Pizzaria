@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Gerenciamento de Entregas</h2>
+    
+    <a href="{% url 'area_pizzaria' %}" class="btn btn-secondary mb-3">
+        Voltar à Pizzaria
+    </a>
+
+    {% if entregas %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Entrega</th>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Endereço</th>
+                    <th>Entregador</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entrega in entregas %}
+                    <tr>
+                        <td>{{ entrega.id_entrega }}</td>
+                        <td>#{{ entrega.pedido.id_pedido }}</td>
+                        <td>{{ entrega.pedido.cliente.nome }}</td>
+                        <td>{{ entrega.endereco_entrega }}</td>
+                        <td>
+                            {% if entrega.entregador %}
+                                {{ entrega.entregador.nome }}
+                            {% else %}
+                                Não atribuído
+                            {% endif %}
+                        </td>
+                        <td>{{ entrega.status_entrega }}</td>
+                        <td>
+                            {% if entrega.status_entrega == 'Pendente' %}
+                                <form method="POST" action="{% url 'atribuir_entregador' entrega.id_entrega %}">
+                                    {% csrf_token %}
+                                    <select name="entregador" class="form-select" required>
+                                        <option value="">Selecione um entregador</option>
+                                        {% for entregador in entregadores %}
+                                            <option value="{{ entregador.pk }}">
+                                                {{ entregador.nome }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm mt-2">
+                                        Atribuir
+                                    </button>
+                                </form>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Nenhuma entrega cadastrada.</p>
+    {% endif %}
+</div>
+{% endblock %}

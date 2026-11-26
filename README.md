@@ -30,3 +30,9 @@
 
 # Visualizar e cancelar pedidos
 
+# Criação Perfil Funcionario e Entregador + Remoção de referencia_pagamento de cliente
+
+# Atualização de Cadastro , Login/logout e botões de retornar a home nas areas
+
+# Gerenciamento de Entregas
+

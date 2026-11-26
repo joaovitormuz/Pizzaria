@@ -37,19 +37,35 @@ urlpatterns = [
         name='excluir_cliente'
     ),
 
-    # Login e logout
+    # Cadastrar Funcionario
     path(
-        'login/',
-        auth_views.LoginView.as_view(
-            template_name='usuarios/login.html'
-        ),
-        name='login'
+    'funcionarios/cadastrar/',
+    views.cadastrar_funcionario,
+    name='cadastrar_funcionario'
     ),
+
+    # Cadastrar Entregador
+    path(
+    'entregadores/cadastrar/',
+    views.cadastrar_entregador,
+    name='cadastrar_entregador'
+),
+
+    # Login e logout
+    
+        
+     path(
+    'login/',
+    views.LoginPerfilView.as_view(),
+    name='login'
+    ),
+
     path(
         'logout/',
         auth_views.LogoutView.as_view(),
         name='logout'
     ),
+
     path(
     'cliente/meus-pedidos/',
     views.meus_pedidos,
@@ -94,5 +110,29 @@ urlpatterns = [
     'pizzaria/pedidos/cancelar/<int:pk>/',
     views.cancelar_pedido,
     name='cancelar_pedido'
+    ),
+
+    path(
+    'entregas/',
+    views.listar_entregas,
+    name='listar_entregas'
+    ),
+
+   path(
+    'entregas/<int:id_entrega>/atribuir/',
+    views.atribuir_entregador,
+    name='atribuir_entregador'
+    ),
+
+    path(
+    'entregas/<int:id_entrega>/atualizar/',
+    views.atualizar_status_entrega,
+    name='atualizar_status_entrega'
+    ),
+    
+    path(
+    'minhas-entregas/',
+    views.minhas_entregas,
+    name='minhas_entregas'
     ),
 ]

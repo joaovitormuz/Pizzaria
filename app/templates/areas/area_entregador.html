@@ -5,4 +5,13 @@
 {% block content %}
 <h1>Área do Entregador</h1>
 <p>Consulta e acompanhamento de entregas.</p>
+
+<a href="{% url 'minhas_entregas' %}" class="btn btn-primary">
+    Minhas Entregas
+</a>
+
+<a href="{% url 'home' %}" class="btn btn-secondary">
+    Voltar à Home
+</a>
+
 {% endblock %}

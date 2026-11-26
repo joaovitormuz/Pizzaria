@@ -67,11 +67,7 @@ class Usuario(AbstractUser):
 
 class Cliente(Usuario):
 
-    referencia_pagamento = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True
-    )
+    pass
 
     def realizarPedido(self):
         pass

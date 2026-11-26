@@ -1,6 +1,7 @@
 
 from django import forms
 from .models import Cliente
+from .models import Cliente, Funcionario, Entregador
 
 
 class ClienteForm(forms.ModelForm):
@@ -19,7 +20,6 @@ class ClienteForm(forms.ModelForm):
             'email',
             'numero_telefone',
             'endereco',
-            'referencia_pagamento'
         ]
 
     def clean_senha(self):
@@ -83,3 +83,75 @@ class ConfirmarPedidoForm(forms.Form):
             )
 
         return cleaned_data
+
+    
+class FuncionarioForm(forms.ModelForm):
+    username = forms.CharField(
+        label='Nome de usuário',
+        max_length=150
+    )
+
+    senha = forms.CharField(
+        label='Senha',
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = Funcionario
+        fields = [
+            'username',
+            'nome',
+            'email',
+            'numero_telefone',
+            'endereco',
+            'salario',
+            'disponibilidade',
+            'funcao'
+        ]
+
+    def save(self, commit=True):
+        funcionario = super().save(commit=False)
+        funcionario.set_password(
+            self.cleaned_data['senha']
+        )
+        funcionario.is_staff = True
+
+        if commit:
+            funcionario.save()
+
+        return funcionario
+
+    
+class EntregadorForm(forms.ModelForm):
+    username = forms.CharField(
+        label='Nome de usuário',
+        max_length=150
+    )
+
+    senha = forms.CharField(
+        label='Senha',
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = Entregador
+        fields = [
+            'username',
+            'nome',
+            'email',
+            'numero_telefone',
+            'endereco',
+            'taxa_entrega',
+            'disponibilidade'
+        ]
+
+    def save(self, commit=True):
+        entregador = super().save(commit=False)
+        entregador.set_password(self.cleaned_data['senha'])
+
+        if commit:
+            entregador.save()
+
+        return entregador
+
+

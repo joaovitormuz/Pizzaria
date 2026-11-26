@@ -14,4 +14,20 @@
     <button type="button">Visualizar pedidos</button>
 </a>
 
+<a href="{% url 'cadastrar_funcionario' %}" class="btn btn-primary">
+    Cadastrar Funcionário
+</a>
+
+<a href="{% url 'cadastrar_entregador' %}" class="btn btn-primary">
+    Cadastrar Entregador
+</a>
+
+<a href="{% url 'listar_entregas' %}" class="btn btn-primary">
+    Gerenciar Entregas
+</a>
+
+<a href="{% url 'home' %}" class="btn btn-secondary">
+    Voltar à Home
+</a>
+
 {% endblock %}

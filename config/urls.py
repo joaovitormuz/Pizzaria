@@ -159,4 +159,74 @@ urlpatterns = [
     views.cadastrar_estoque,
     name='cadastrar_estoque'
     ),
+    path(
+    'receitas/',
+    views.listar_receitas,
+    name='listar_receitas'
+    ),
+    path(
+    'receitas/cadastrar/',
+    views.cadastrar_receita,
+    name='cadastrar_receita'
+    ),
+    path(
+    'receitas/<int:produto_id>/editar/',
+    views.editar_receita,
+    name='editar_receita'
+    ),
+
+    path(
+    'receitas/<int:produto_id>/excluir/',
+    views.excluir_receita,
+    name='excluir_receita'
+    ),
+   
+   path(
+    'produtos/',
+    views.listar_produtos,
+    name='listar_produtos'
+    ),
+
+    path(
+    'produtos/cadastrar/',
+    views.cadastrar_produto,
+    name='cadastrar_produto'
+    ),
+
+    path(
+    'produtos/<int:produto_id>/editar/',
+    views.editar_produto,
+    name='editar_produto'
+    ),
+
+    path(
+    'produtos/<int:produto_id>/excluir/',
+    views.excluir_produto,
+    name='excluir_produto'
+    ),
+
+    path(
+    'ingredientes/<int:ingrediente_id>/editar/',
+    views.editar_ingrediente,
+    name='editar_ingrediente'
+    ),
+
+    path(
+    'ingredientes/<int:ingrediente_id>/excluir/',
+    views.excluir_ingrediente,
+    name='excluir_ingrediente'
+    ),
+
+    path(
+    'estoque/<int:estoque_id>/editar/',
+    views.editar_estoque,
+    name='editar_estoque'
+    ),
+    
+    path(
+    'estoque/<int:estoque_id>/excluir/',
+    views.excluir_estoque,
+    name='excluir_estoque'
+    ),
+   
 ]

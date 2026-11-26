@@ -21,6 +21,7 @@
                         <th>Nome</th>
                         <th>Tipo</th>
                         <th>Unidade de medida</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
 
@@ -28,12 +29,24 @@
                     {% for ingrediente in ingredientes %}
                     <tr>
                         <td>{{ ingrediente.nome }}</td>
-                        <td>{{ ingrediente.tipo }}</td>
-                        <td>{{ ingrediente.unidade_medida }}</td>
+                        <td>{{ ingrediente.get_tipo_display }}</td>
+                        <td>{{ ingrediente.get_unidade_medida_display }}</td>
+                        <td>
+                            <a href="{% url 'editar_ingrediente' ingrediente.pk %}"
+                               class="btn btn-warning btn-sm">
+                                Editar
+                            </a>
+
+                            <a href="{% url 'excluir_ingrediente' ingrediente.pk %}"
+                               class="btn btn-danger btn-sm">
+                                Excluir
+                            </a>
+                        </td>
                     </tr>
+
                     {% empty %}
                     <tr>
-                        <td colspan="3" class="text-center text-muted">
+                        <td colspan="4" class="text-center text-muted">
                             Nenhum ingrediente cadastrado.
                         </td>
                     </tr>

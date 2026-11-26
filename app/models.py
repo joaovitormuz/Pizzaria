@@ -151,8 +151,33 @@ class Ingrediente(models.Model):
 
     id_ingrediente = models.AutoField(primary_key=True)
     nome = models.CharField(max_length=100)
-    tipo = models.CharField(max_length=50)
-    unidade_medida = models.CharField(max_length=30)
+    TIPOS_INGREDIENTE = [
+    ('massa', 'Massa'),
+    ('queijo', 'Queijo'),
+    ('carne', 'Carne'),
+    ('vegetal', 'Vegetal'),
+    ('molho', 'Molho'),
+    ('tempero', 'Tempero'),
+    ('outro', 'Outro'),
+    ]
+
+    tipo = models.CharField(
+    max_length=50,
+    choices=TIPOS_INGREDIENTE
+    )
+    
+    UNIDADES_MEDIDA = [
+    ('g', 'Gramas (g)'),
+    ('kg', 'Quilogramas (kg)'),
+    ('ml', 'Mililitros (ml)'),
+    ('l', 'Litros (l)'),
+    ('unidade', 'Unidade'),
+    ]
+
+    unidade_medida = models.CharField(
+    max_length=30,
+    choices=UNIDADES_MEDIDA
+    )
 
     def atualizarIngrediente(self):
         pass
@@ -202,8 +227,18 @@ class Produto(models.Model):
 
     id_produto = models.AutoField(primary_key=True)
     nome = models.CharField(max_length=100)
-    categoria = models.CharField(max_length=50)
     descricao = models.TextField(blank=True)
+    CATEGORIAS = [
+    ('pizza', 'Pizza'),
+    ('bebida', 'Bebida'),
+    ('sobremesa', 'Sobremesa'),
+    ('acompanhamento', 'Acompanhamento'),
+    ]
+
+    categoria = models.CharField(
+    max_length=50,
+    choices=CATEGORIAS
+    )
 
     preco = models.DecimalField(
         max_digits=10,
@@ -271,6 +306,8 @@ class Receita(models.Model):
 # =====================================================
 
 class Pedido(models.Model):
+    
+    estoque_baixado = models.BooleanField(default=False)
 
     STATUS_CHOICES = [
         ('Pendente', 'Pendente'),

@@ -5,68 +5,97 @@
 
 {% block content %}
 
-<h1>Pedidos Recebidos</h1>
+<div class="container mt-4">
 
-{% if pedidos %}
-    {% for pedido in pedidos %}
+    <h1>Pedidos Recebidos</h1>
 
-        <div>
-            <h3>Pedido #{{ pedido.id_pedido }}</h3>
+    {% if pedidos %}
+        {% for pedido in pedidos %}
 
-            <p>Cliente: {{ pedido.cliente.nome }}</p>
-            <p>Data: {{ pedido.data_hora }}</p>
-            <p>Status: {{ pedido.status }}</p>
-            <p>Tipo: {{ pedido.tipo_entrega }}</p>
-            <p>Total: R$ {{ pedido.preco_total }}</p>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
 
-            <h4>Produtos:</h4>
+                    <h3>Pedido #{{ pedido.id_pedido }}</h3>
 
-            <ul>
-                {% for item in pedido.itens.all %}
-                    <li>
-                        {{ item.quantidade }}x
-                        {{ item.produto.nome }}
-                        — R$ {{ item.subtotal }}
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
+                    <p><strong>Cliente:</strong> {{ pedido.cliente.nome }}</p>
+                    <p><strong>Data:</strong> {{ pedido.data_hora }}</p>
+                    <p><strong>Status:</strong> {{ pedido.status }}</p>
+                    <p><strong>Tipo:</strong> {{ pedido.tipo_entrega }}</p>
+                    <p><strong>Total:</strong> R$ {{ pedido.preco_total }}</p>
 
-        <hr>
+                    <h5>Produtos:</h5>
 
-        <form method="POST"
-      action="{% url 'atualizar_status_pedido' pedido.pk %}">
+                    <ul>
+                        {% for item in pedido.itens.all %}
+                            <li>
+                                {{ item.quantidade }}x
+                                {{ item.produto.nome }}
+                                — R$ {{ item.subtotal }}
+                            </li>
+                        {% endfor %}
+                    </ul>
 
-      {% if pedido.status != 'Cancelado' and pedido.status != 'Concluído' %}
-      <form method="POST"
-          action="{% url 'cancelar_pedido' pedido.pk %}">
-        {% csrf_token %}
-        <button type="submit">Cancelar pedido</button>
-      </form>
-     {% endif %}
+                    <hr>
 
-    {% csrf_token %}
+                    {% if pedido.status != 'Cancelado' and pedido.status != 'Concluído' %}
 
-    <label for="status-{{ pedido.pk }}">Atualizar status:</label>
+                        <form method="POST"
+                              action="{% url 'atualizar_status_pedido' pedido.pk %}"
+                              class="mb-3">
 
-    <select name="status" id="status-{{ pedido.pk }}">
-        {% for valor, descricao in status_choices %}
-            <option value="{{ valor }}"
-                {% if pedido.status == valor %}selected{% endif %}>
-                {{ descricao }}
-            </option>
+                            {% csrf_token %}
+
+                            <label for="status-{{ pedido.pk }}" class="form-label">
+                                Atualizar status:
+                            </label>
+
+                            <select name="status"
+                                    id="status-{{ pedido.pk }}"
+                                    class="form-select mb-2">
+
+                                {% for valor, descricao in status_choices %}
+                                    <option value="{{ valor }}"
+                                        {% if pedido.status == valor %}selected{% endif %}>
+                                        {{ descricao }}
+                                    </option>
+                                {% endfor %}
+
+                            </select>
+
+                            <button type="submit" class="btn btn-primary">
+                                Atualizar status
+                            </button>
+
+                        </form>
+
+                        <form method="POST"
+                              action="{% url 'cancelar_pedido' pedido.pk %}">
+
+                            {% csrf_token %}
+
+                            <button type="submit" class="btn btn-danger">
+                                Cancelar pedido
+                            </button>
+
+                        </form>
+
+                    {% endif %}
+
+                </div>
+            </div>
+
         {% endfor %}
-    </select>
 
-    <button type="submit">Atualizar</button>
+    {% else %}
 
-</form>
+        <p>Nenhum pedido recebido.</p>
 
-    {% endfor %}
-{% else %}
-    <p>Nenhum pedido recebido.</p>
-{% endif %}
+    {% endif %}
 
-<a href="{% url 'area_pizzaria' %}">Voltar</a>
+    <a href="{% url 'area_pizzaria' %}" class="btn btn-secondary">
+        Voltar
+    </a>
+
+</div>
 
 {% endblock %}

@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 
 {% block content %}
@@ -21,6 +22,7 @@
                         <th>Quantidade disponível</th>
                         <th>Quantidade mínima</th>
                         <th>Situação</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
 
@@ -28,8 +30,17 @@
                     {% for estoque in estoques %}
                     <tr>
                         <td>{{ estoque.ingrediente.nome }}</td>
-                        <td>{{ estoque.quantidade_estoque }} {{ estoque.ingrediente.unidade_medida }}</td>
-                        <td>{{ estoque.quantidade_minima }} {{ estoque.ingrediente.unidade_medida }}</td>
+
+                        <td>
+                            {{ estoque.quantidade_estoque }}
+                            {{ estoque.ingrediente.get_unidade_medida_display }}
+                        </td>
+
+                        <td>
+                            {{ estoque.quantidade_minima }}
+                            {{ estoque.ingrediente.get_unidade_medida_display }}
+                        </td>
+
                         <td>
                             {% if estoque.verificarEstoque %}
                                 <span class="badge bg-danger">Estoque baixo</span>
@@ -37,10 +48,23 @@
                                 <span class="badge bg-success">Normal</span>
                             {% endif %}
                         </td>
+
+                        <td>
+                            <a href="{% url 'editar_estoque' estoque.pk %}"
+                               class="btn btn-warning btn-sm">
+                                Editar
+                            </a>
+
+                            <a href="{% url 'excluir_estoque' estoque.pk %}"
+                               class="btn btn-danger btn-sm">
+                                Excluir
+                            </a>
+                        </td>
                     </tr>
+
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted">
+                        <td colspan="5" class="text-center text-muted">
                             Nenhum estoque cadastrado.
                         </td>
                     </tr>

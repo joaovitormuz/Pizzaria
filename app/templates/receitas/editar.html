@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Editar Receita: {{ produto.nome }}</h2>
+
+        <a href="{% url 'listar_receitas' %}" class="btn btn-secondary">
+            Voltar
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <form method="POST">
+                {% csrf_token %}
+
+                {{ formset.management_form }}
+
+                {% if formset.errors %}
+                    <div class="alert alert-danger">
+                        Existem erros no preenchimento dos ingredientes.
+                    </div>
+                {% endif %}
+
+                {% if formset.non_form_errors %}
+                    <div class="alert alert-danger">
+                        {{ formset.non_form_errors }}
+                    </div>
+                {% endif %}
+
+                <div id="ingredientes-container">
+                    {% for form in formset %}
+                        <div class="ingrediente-item border rounded p-3 mb-3">
+                            <h6>Ingrediente {{ forloop.counter }}</h6>
+
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+
+                            {% for field in form.visible_fields %}
+                                <div class="mb-3">
+                                    {{ field.label_tag }}
+                                    {{ field }}
+                                    {% for error in field.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" id="adicionar-ingrediente" class="btn btn-outline-primary mb-3">
+                    Adicionar ingrediente
+                </button>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        Salvar alterações
+                    </button>
+
+                    <a href="{% url 'listar_receitas' %}" class="btn btn-secondary">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('ingredientes-container');
+    const botao = document.getElementById('adicionar-ingrediente');
+    const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+
+    botao.addEventListener('click', function () {
+        const forms = container.querySelectorAll('.ingrediente-item');
+        const total = parseInt(totalForms.value);
+
+        const novoForm = forms[0].cloneNode(true);
+
+        novoForm.innerHTML = novoForm.innerHTML.replace(
+            /form-\d+-/g,
+            `form-${total}-`
+        );
+
+        novoForm.querySelectorAll('input, select').forEach(function (campo) {
+            campo.value = '';
+        });
+
+        container.appendChild(novoForm);
+
+        totalForms.value = total + 1;
+    });
+});
+</script>
+{% endblock %}

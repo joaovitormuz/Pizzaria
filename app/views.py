@@ -5,7 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 
+from decimal import Decimal
 from django.db import transaction
+from django.db.models import Sum
 from .models import Cliente, Pedido, Produto, ItemPedido
 from .forms import (
     ClienteForm,
@@ -13,7 +15,6 @@ from .forms import (
     ConfirmarPedidoForm
 )
 from .models import Cliente, Pedido, Produto, ItemPedido, Funcionario
-from .forms import ClienteForm, AdicionarProdutoForm, ConfirmarPedidoForm, FuncionarioForm
 from .forms import (
     ClienteForm,
     AdicionarProdutoForm,
@@ -21,7 +22,9 @@ from .forms import (
     FuncionarioForm,
     EntregadorForm,
     IngredienteForm,
-    EstoqueForm
+    EstoqueForm,
+    ReceitaForm,
+    ProdutoForm
 )
 
 from .models import (
@@ -33,8 +36,8 @@ from .models import (
     Entrega,
     Entregador,
     Ingrediente,
-    Estoque
-    
+    Estoque,
+    Receita
 )
 
 
@@ -554,6 +557,7 @@ def listar_pedidos(request):
 # ATUALIZAR STATUS DO PEDIDO
 # =====================================================
 
+
 @login_required
 def atualizar_status_pedido(request, pk):
     if not acesso_administrativo(request.user):
@@ -565,21 +569,124 @@ def atualizar_status_pedido(request, pk):
 
     if request.method == 'POST':
         novo_status = request.POST.get('status')
-
         status_validos = dict(Pedido.STATUS_CHOICES)
 
-        if novo_status in status_validos:
-            pedido.status = novo_status
-            pedido.save(update_fields=['status'])
+        if novo_status not in status_validos:
+            messages.error(request, 'Status inválido.')
+            return redirect('listar_pedidos')
+
+        try:
+            with transaction.atomic():
+
+                # Baixa o estoque somente ao iniciar a preparação
+                if (
+                    novo_status == 'Em preparação'
+                    and not pedido.estoque_baixado
+                ):
+
+                    quantidades_necessarias = {}
+
+                    itens = pedido.itens.select_related('produto').all()
+
+                    if not itens.exists():
+                        raise ValueError(
+                            'O pedido não possui itens.'
+                        )
+
+                    # Calcula os ingredientes necessários
+                    for item in itens:
+                        receitas = Receita.objects.filter(
+                            produto=item.produto
+                        )
+
+                        if not receitas.exists():
+                            raise ValueError(
+                                f'O produto "{item.produto.nome}" '
+                                'não possui receita cadastrada.'
+                            )
+
+                        for receita in receitas:
+                            ingrediente_id = receita.ingrediente_id
+
+                            quantidade = (
+                                receita.quantidade_medida
+                                * item.quantidade
+                            )
+
+                            quantidades_necessarias[ingrediente_id] = (
+                                quantidades_necessarias.get(
+                                    ingrediente_id,
+                                    Decimal('0')
+                                ) + quantidade
+                            )
+
+                    # Bloqueia os registros de estoque durante a operação
+                    estoques = Estoque.objects.select_for_update().filter(
+                        ingrediente_id__in=quantidades_necessarias.keys()
+                    )
+
+                    estoques_por_ingrediente = {
+                        estoque.ingrediente_id: estoque
+                        for estoque in estoques
+                    }
+
+                    # Verifica todos os ingredientes antes de descontar
+                    for ingrediente_id, quantidade in quantidades_necessarias.items():
+
+                        estoque = estoques_por_ingrediente.get(
+                            ingrediente_id
+                        )
+
+                        if estoque is None:
+                            ingrediente = Ingrediente.objects.get(
+                                pk=ingrediente_id
+                            )
+
+                            raise ValueError(
+                                f'Não existe estoque cadastrado para '
+                                f'"{ingrediente.nome}".'
+                            )
+
+                        if estoque.quantidade_estoque < quantidade:
+                            raise ValueError(
+                                f'Estoque insuficiente de '
+                                f'"{estoque.ingrediente.nome}". '
+                                f'Necessário: {quantidade} '
+                                f'{estoque.ingrediente.unidade_medida}. '
+                                f'Disponível: {estoque.quantidade_estoque}.'
+                            )
+
+                    # Desconta os ingredientes
+                    for ingrediente_id, quantidade in quantidades_necessarias.items():
+
+                        estoque = estoques_por_ingrediente[ingrediente_id]
+                        estoque.quantidade_estoque -= quantidade
+                        estoque.save(
+                            update_fields=[
+                                'quantidade_estoque',
+                                'data_atualizacao'
+                            ]
+                        )
+
+                    pedido.estoque_baixado = True
+
+                # Atualiza o status do pedido
+                pedido.status = novo_status
+
+                pedido.save(
+                    update_fields=['status', 'estoque_baixado']
+                )
 
             messages.success(
                 request,
                 f'Status do pedido #{pedido.id_pedido} atualizado!'
             )
-        else:
-            messages.error(request, 'Status inválido.')
+
+        except ValueError as erro:
+            messages.error(request, str(erro))
 
     return redirect('listar_pedidos')
+
 
 # =====================================================
 # CANCELAR PEDIDO
@@ -747,6 +854,97 @@ def minhas_entregas(request):
         'entregas': entregas
     })
 
+# =====================================================
+# Cadastrar Produto
+# =====================================================
+
+@login_required
+def cadastrar_produto(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    if request.method == 'POST':
+        form = ProdutoForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Produto cadastrado com sucesso!')
+            return redirect('listar_produtos')
+
+    else:
+        form = ProdutoForm()
+
+    return render(
+        request,
+        'produtos/cadastrar.html',
+        {'form': form}
+    )
+
+# =====================================================
+# Editar Produto
+# =====================================================
+
+@login_required
+def editar_produto(request, produto_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    produto = get_object_or_404(Produto, pk=produto_id)
+
+    if request.method == 'POST':
+        form = ProdutoForm(request.POST, instance=produto)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Produto atualizado com sucesso!')
+            return redirect('listar_produtos')
+
+    else:
+        form = ProdutoForm(instance=produto)
+
+    return render(
+        request,
+        'produtos/editar.html',
+        {
+            'form': form,
+            'produto': produto
+        }
+    )
+
+# =====================================================
+# Excluir Produto
+# =====================================================
+
+@login_required
+def excluir_produto(request, produto_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    produto = get_object_or_404(Produto, pk=produto_id)
+
+    if request.method == 'POST':
+        produto.delete()
+        messages.success(request, 'Produto excluído com sucesso!')
+        return redirect('listar_produtos')
+
+    return render(
+        request,
+        'produtos/excluir.html',
+        {'produto': produto}
+    )
+
+# =====================================================
+# Listar Produto
+# =====================================================
+@login_required
+def listar_produtos(request):
+    produtos = Produto.objects.all().order_by('nome')
+
+    return render(
+        request,
+        'produtos/listar.html',
+        {'produtos': produtos}
+    )
 
 # =====================================================
 # Cadastrar Ingredientes
@@ -771,6 +969,8 @@ def cadastrar_ingrediente(request):
     })
 
 
+
+
 # =====================================================
 # Listar Ingredientes
 # =====================================================
@@ -783,6 +983,62 @@ def listar_ingredientes(request):
 
     return render(request, 'estoque/listar_ingredientes.html', {
         'ingredientes': ingredientes
+    })
+
+# =====================================================
+# Editar Ingredientes
+# =====================================================
+@login_required
+def editar_ingrediente(request, ingrediente_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    ingrediente = get_object_or_404(Ingrediente, pk=ingrediente_id)
+
+    if request.method == 'POST':
+        form = IngredienteForm(request.POST, instance=ingrediente)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Ingrediente atualizado com sucesso!')
+            return redirect('listar_ingredientes')
+    else:
+        form = IngredienteForm(instance=ingrediente)
+
+    return render(request, 'estoque/editar_ingrediente.html', {
+        'form': form,
+        'ingrediente': ingrediente
+    })
+
+# =====================================================
+# Excluir Ingredientes
+# =====================================================
+
+@login_required
+def excluir_ingrediente(request, ingrediente_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    ingrediente = get_object_or_404(Ingrediente, pk=ingrediente_id)
+
+    if request.method == 'POST':
+
+        if hasattr(ingrediente, 'estoque') or ingrediente.receitas.exists():
+         messages.warning(
+         request,
+         f'Não foi possível excluir o ingrediente "{ingrediente.nome}", '
+         'pois ele está vinculado ao estoque ou a uma receita. '
+         'Remova esses vínculos antes de tentar novamente.'
+         )
+         return redirect('listar_ingredientes')
+
+        ingrediente.delete()
+
+        messages.success(request, 'Ingrediente excluído com sucesso!')
+        return redirect('listar_ingredientes')
+
+    return render(request, 'estoque/excluir_ingrediente.html', {
+        'ingrediente': ingrediente
     })
 
 # =====================================================
@@ -823,6 +1079,207 @@ def cadastrar_estoque(request):
         'form': form
     })
 
+# =====================================================
+# Cadastrar Estoque
+# =====================================================
+@login_required
+def editar_estoque(request, estoque_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    estoque = get_object_or_404(Estoque, pk=estoque_id)
+
+    if request.method == 'POST':
+        form = EstoqueForm(request.POST, instance=estoque)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Estoque atualizado com sucesso!')
+            return redirect('listar_estoque')
+    else:
+        form = EstoqueForm(instance=estoque)
+
+    return render(request, 'estoque/editar_estoque.html', {
+        'form': form,
+        'estoque': estoque
+    })
 
 
+# =====================================================
+# Excluir Estoque
+# =====================================================
+@login_required
+def excluir_estoque(request, estoque_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
 
+    estoque = get_object_or_404(Estoque, pk=estoque_id)
+
+    if request.method == 'POST':
+        estoque.delete()
+        messages.success(request, 'Registro de estoque excluído com sucesso!')
+        return redirect('listar_estoque')
+
+    return render(request, 'estoque/excluir_estoque.html', {
+        'estoque': estoque
+    })
+
+# =====================================================
+# Listar Receitas
+# =====================================================
+@login_required
+def listar_receitas(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    receitas = Receita.objects.select_related(
+        'produto', 'ingrediente'
+    ).all().order_by('produto__nome')
+
+    return render(request, 'receitas/listar.html', {
+        'receitas': receitas
+    })
+
+# =====================================================
+# Cadastrar Receitas
+# =====================================================
+@login_required
+def cadastrar_receita(request):
+    produtos = Produto.objects.all().order_by('nome')
+    ingredientes_unidades = {
+    str(ingrediente.id_ingrediente): ingrediente.unidade_medida
+    for ingrediente in Ingrediente.objects.all()
+     }
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    from .forms import ReceitaFormSet
+
+    if request.method == 'POST':
+        produto_id = request.POST.get('produto')
+        formset = ReceitaFormSet(request.POST)
+
+        if formset.is_valid() and produto_id:
+            produto = get_object_or_404(Produto, pk=produto_id)
+
+            for form in formset:
+                if form.cleaned_data:
+                    ingrediente = form.cleaned_data['ingrediente']
+
+                    receita, criada = Receita.objects.update_or_create(
+                        produto=produto,
+                        ingrediente=ingrediente,
+                        defaults={
+                            'unidade_medida': form.cleaned_data['unidade_medida'],
+                            'quantidade_medida': form.cleaned_data['quantidade_medida'],
+                        },
+                    )
+
+            messages.success(request, 'Receita cadastrada com sucesso!')
+            return redirect('listar_receitas')
+
+    else:
+        formset = ReceitaFormSet()
+
+    return render(request, 'receitas/cadastrar.html', {
+    'produtos': produtos,
+    'formset': formset,
+    'ingredientes_unidades': ingredientes_unidades,
+     })
+
+
+# =====================================================
+# Editar Receitas
+# =====================================================
+@login_required
+def editar_receita(request, produto_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    from .forms import ReceitaFormSet
+    from django.db import transaction
+
+    produto = get_object_or_404(Produto, pk=produto_id)
+
+    receitas = Receita.objects.filter(
+        produto=produto
+    ).select_related('ingrediente')
+
+    if request.method == 'POST':
+        formset = ReceitaFormSet(request.POST)
+
+        if formset.is_valid():
+            ingredientes_selecionados = []
+
+            with transaction.atomic():
+                for form in formset:
+                    if form.cleaned_data:
+                        ingrediente = form.cleaned_data.get('ingrediente')
+
+                        if ingrediente:
+                            ingredientes_selecionados.append(ingrediente.pk)
+
+                            Receita.objects.update_or_create(
+                                produto=produto,
+                                ingrediente=ingrediente,
+                                defaults={
+                                    'unidade_medida': form.cleaned_data['unidade_medida'],
+                                    'quantidade_medida': form.cleaned_data['quantidade_medida'],
+                                }
+                            )
+
+                Receita.objects.filter(
+                    produto=produto
+                ).exclude(
+                    ingrediente_id__in=ingredientes_selecionados
+                ).delete()
+
+            messages.success(request, 'Receita atualizada com sucesso!')
+            return redirect('listar_receitas')
+
+    else:
+        dados_iniciais = [
+            {
+                'ingrediente': receita.ingrediente,
+                'unidade_medida': receita.unidade_medida,
+                'quantidade_medida': receita.quantidade_medida,
+            }
+            for receita in receitas
+        ]
+
+        formset = ReceitaFormSet(initial=dados_iniciais)
+
+    return render(
+        request,
+        'receitas/editar.html',
+        {
+            'formset': formset,
+            'produto': produto,
+        },
+    )
+
+# =====================================================
+# Excluir Receitas
+# =====================================================
+@login_required
+def excluir_receita(request, produto_id):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    produto = get_object_or_404(Produto, pk=produto_id)
+
+    if request.method == 'POST':
+        Receita.objects.filter(produto=produto).delete()
+
+        messages.success(
+            request,
+            f'Receita de {produto.nome} excluída com sucesso!'
+        )
+
+        return redirect('listar_receitas')
+
+    return render(
+        request,
+        'receitas/excluir.html',
+        {'produto': produto}
+    )

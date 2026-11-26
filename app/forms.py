@@ -1,7 +1,12 @@
 
 from django import forms
-from .models import Cliente
-from .models import Cliente, Funcionario, Entregador, Ingrediente, Estoque
+from django.forms import BaseFormSet, formset_factory
+from django.core.exceptions import ValidationError
+from .models import (
+    Cliente, Funcionario, Entregador,
+    Ingrediente, Estoque, Receita, Produto
+)
+
 
 
 class ClienteForm(forms.ModelForm):
@@ -51,6 +56,36 @@ class AdicionarProdutoForm(forms.Form):
     min_value=1,
  initial=1
 )
+
+class ProdutoForm(forms.ModelForm):
+
+    class Meta:
+        model = Produto
+        fields = [
+          'nome',
+          'categoria',
+          'descricao',
+          'preco',
+          'disponibilidade'
+         ]
+
+        labels = {
+            'nome': 'Nome do produto',
+            'categoria': 'Categoria',
+            'descricao': 'Descrição',
+            'preco': 'Preço',
+            'disponibilidade': 'Disponibilidade'
+        }
+
+        widgets = {
+            'descricao': forms.Textarea(attrs={
+                'rows': 3
+            }),
+            'preco': forms.NumberInput(attrs={
+                'step': '0.01',
+                'min': '0'
+            })
+        }
 
 class ConfirmarPedidoForm(forms.Form):
 
@@ -167,7 +202,7 @@ class IngredienteForm(forms.ModelForm):
 
         labels = {
             'nome': 'Nome do ingrediente',
-            'tipo': 'Tipo',
+            'tipo': 'Tipo de Ingrediente',
             'unidade_medida': 'Unidade de medida'
         }
 
@@ -197,3 +232,101 @@ class EstoqueForm(forms.ModelForm):
             })
         }        
 
+class ReceitaForm(forms.ModelForm):
+
+    unidade_medida = forms.CharField(
+        label='Unidade de medida',
+        required=False,
+        widget=forms.HiddenInput()
+    )
+
+    class Meta:
+        model = Receita
+        fields = [
+            'ingrediente',
+            'unidade_medida',
+            'quantidade_medida',
+        ]
+        labels = {
+            'ingrediente': 'Ingrediente',
+            'unidade_medida': 'Unidade de medida',
+            'quantidade_medida': 'Quantidade utilizada',
+        }
+        widgets = {
+            'quantidade_medida': forms.NumberInput(
+                attrs={
+                    'step': '0.001',
+                    'min': '0',
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields['ingrediente'].required = False
+        self.fields['quantidade_medida'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        ingrediente = cleaned_data.get('ingrediente')
+        unidade = cleaned_data.get('unidade_medida')
+        quantidade = cleaned_data.get('quantidade_medida')
+
+        # Se não selecionar ingrediente, ignora a linha
+        if not ingrediente:
+            cleaned_data['unidade_medida'] = ''
+            cleaned_data['quantidade_medida'] = None
+            return cleaned_data
+
+        # Exige a unidade de medida
+        if not unidade:
+            self.add_error(
+                'unidade_medida',
+                'A unidade de medida não foi preenchida.'
+            )
+
+        # Verifica se a unidade corresponde ao ingrediente
+        elif unidade != ingrediente.unidade_medida:
+            self.add_error(
+                'unidade_medida',
+                'A unidade deve corresponder à unidade do ingrediente.'
+            )
+
+        # Exige a quantidade
+        if quantidade is None:
+            self.add_error(
+                'quantidade_medida',
+                'Informe a quantidade.'
+            )
+
+        return cleaned_data
+
+
+class BaseReceitaFormSet(BaseFormSet):
+    def clean(self):
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        ingredientes = [
+            form.cleaned_data.get('ingrediente')
+            for form in self.forms
+            if form.cleaned_data and form.cleaned_data.get('ingrediente')
+        ]
+
+        if len(ingredientes) != len(set(ingredientes)):
+            raise ValidationError(
+                'Não selecione o mesmo ingrediente mais de uma vez.'
+            )
+
+
+ReceitaFormSet = formset_factory(
+    ReceitaForm,
+    formset=BaseReceitaFormSet,
+    extra=1,
+    min_num=1,
+    validate_min=True,
+)

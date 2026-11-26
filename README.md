@@ -38,3 +38,11 @@
 
 # Cadastro de Ingredientes e estoque
 
+# Correção De modo de apresentação de tipos , categorias e unidades de medida
+
+# Adição das opçoes de editar e excluir dados sem admin
+
+# Receitas
+
+# Subtração automatica do estoque quando o pedido é colocado em preparação
+

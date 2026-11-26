@@ -1,0 +1,42 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Excluir Estoque{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <h2>Excluir Registro de Estoque</h2>
+
+            <p>
+                Tem certeza de que deseja excluir o registro de estoque
+                do ingrediente
+                <strong>{{ estoque.ingrediente.nome }}</strong>?
+            </p>
+
+            <p>
+                <strong>Quantidade atual:</strong>
+                {{ estoque.quantidade_estoque }}
+                {{ estoque.ingrediente.get_unidade_medida_display }}
+            </p>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <button type="submit" class="btn btn-danger">
+                    Confirmar Exclusão
+                </button>
+
+                <a href="{% url 'listar_estoque' %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

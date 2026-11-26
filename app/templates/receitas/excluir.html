@@ -1,0 +1,39 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="card shadow-sm">
+        <div class="card-body text-center">
+
+            <h3 class="text-danger mb-3">Excluir Receita</h3>
+
+            <p>
+                Tem certeza de que deseja excluir a receita de
+                <strong>{{ produto.nome }}</strong>?
+            </p>
+
+            <p class="text-muted">
+                Todos os ingredientes associados a essa receita serão excluídos.
+                Esta ação não poderá ser desfeita.
+            </p>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <button type="submit" class="btn btn-danger">
+                    Confirmar exclusão
+                </button>
+
+                <a href="{% url 'listar_receitas' %}"
+                   class="btn btn-secondary">
+                    Cancelar
+                </a>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Cadastrar Receita</h2>
+
+    <div class="card shadow-sm mt-3">
+        <div class="card-body">
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="produto" class="form-label">Produto</label>
+                    <select name="produto" id="produto" class="form-select" required>
+                        <option value="">Selecione um produto</option>
+                        {% for produto in produtos %}
+                            <option value="{{ produto.pk }}">
+                                {{ produto.nome }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <h5>Ingredientes</h5>
+
+                {{ formset.management_form }}
+                {{ formset.non_form_errors }}
+
+                <div id="ingredientes">
+                    {% for form in formset %}
+                        <div class="ingrediente-item border rounded p-3 mb-3">
+
+                            {{ form.id }}
+
+                            <div class="mb-3">
+                                {{ form.ingrediente.label_tag }}
+                                {{ form.ingrediente }}
+                                {{ form.ingrediente.errors }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Unidade de medida</label>
+                                <input type="text"
+                                       class="form-control unidade-exibida"
+                                       readonly
+                                       placeholder="Selecione um ingrediente">
+                                {{ form.unidade_medida }}
+                                {{ form.unidade_medida.errors }}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.quantidade_medida.label_tag }}
+                                {{ form.quantidade_medida }}
+                                {{ form.quantidade_medida.errors }}
+                            </div>
+
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-secondary mb-3" id="adicionar">
+                    Adicionar ingrediente
+                </button>
+
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        Salvar Receita
+                    </button>
+
+                    <a href="{% url 'listar_receitas' %}" class="btn btn-secondary">
+                        Voltar
+                    </a>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+{{ ingredientes_unidades|json_script:"ingredientes-unidades" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const container = document.getElementById('ingredientes');
+    const botao = document.getElementById('adicionar');
+    const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+
+    const ingredientesUnidades = JSON.parse(
+        document.getElementById('ingredientes-unidades').textContent
+    );
+
+    function configurarLinha(linha) {
+
+        const selectIngrediente = linha.querySelector('select[name$="-ingrediente"]');
+        const campoUnidade = linha.querySelector('input[name$="-unidade_medida"]');
+        const unidadeExibida = linha.querySelector('.unidade-exibida');
+
+        function atualizarUnidade() {
+            const ingredienteId = selectIngrediente.value;
+            const unidade = ingredientesUnidades[ingredienteId] || '';
+
+            campoUnidade.value = unidade;
+            unidadeExibida.value = unidade;
+        }
+
+        selectIngrediente.addEventListener('change', atualizarUnidade);
+
+        atualizarUnidade();
+    }
+
+    container.querySelectorAll('.ingrediente-item').forEach(configurarLinha);
+
+    botao.addEventListener('click', function () {
+
+        const total = parseInt(totalForms.value);
+
+        const primeiro = container.querySelector('.ingrediente-item');
+        const novo = primeiro.cloneNode(true);
+
+        novo.querySelectorAll('input, select').forEach(function (campo) {
+
+            campo.name = campo.name.replace(/form-(\d+)-/, `form-${total}-`);
+            campo.id = campo.id.replace(/form-(\d+)-/, `form-${total}-`);
+
+            campo.value = '';
+        });
+
+        novo.querySelectorAll('.errorlist').forEach(function (erro) {
+            erro.remove();
+        });
+
+        container.appendChild(novo);
+
+        configurarLinha(novo);
+
+        totalForms.value = total + 1;
+    });
+
+});
+</script>
+
+{% endblock %}

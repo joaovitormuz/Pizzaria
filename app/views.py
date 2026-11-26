@@ -11,6 +11,7 @@ from .forms import (
     AdicionarProdutoForm,
     ConfirmarPedidoForm
 )
+from .models import Cliente, Pedido, Produto, ItemPedido, Funcionario
 
 
 # =====================================================
@@ -413,4 +414,92 @@ def confirmar_pedido(request):
         {'form': form}
     )
 
+# =====================================================
+# LISTAR PEDIDOS PARA A PIZZARIA
+# =====================================================
 
+@login_required
+def listar_pedidos(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden(
+            'Você não tem permissão para visualizar os pedidos.'
+        )
+
+    pedidos = Pedido.objects.select_related(
+        'cliente'
+    ).prefetch_related(
+        'itens__produto'
+    ).order_by('-data_hora')
+
+    return render(
+    request,
+    'pedidos/listar.html',
+    {
+        'pedidos': pedidos,
+        'status_choices': Pedido.STATUS_CHOICES
+    }
+    )
+
+# =====================================================
+# ATUALIZAR STATUS DO PEDIDO
+# =====================================================
+
+@login_required
+def atualizar_status_pedido(request, pk):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden(
+            'Você não tem permissão para atualizar pedidos.'
+        )
+
+    pedido = get_object_or_404(Pedido, pk=pk)
+
+    if request.method == 'POST':
+        novo_status = request.POST.get('status')
+
+        status_validos = dict(Pedido.STATUS_CHOICES)
+
+        if novo_status in status_validos:
+            pedido.status = novo_status
+            pedido.save(update_fields=['status'])
+
+            messages.success(
+                request,
+                f'Status do pedido #{pedido.id_pedido} atualizado!'
+            )
+        else:
+            messages.error(request, 'Status inválido.')
+
+    return redirect('listar_pedidos')
+
+# =====================================================
+# CANCELAR PEDIDO
+# =====================================================
+
+@login_required
+def cancelar_pedido(request, pk):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden(
+            'Você não tem permissão para cancelar pedidos.'
+        )
+
+    pedido = get_object_or_404(Pedido, pk=pk)
+
+    if request.method == 'POST':
+        if pedido.status == 'Concluído':
+            messages.error(
+                request,
+                'Não é possível cancelar um pedido concluído.'
+            )
+        elif pedido.status == 'Cancelado':
+            messages.warning(
+                request,
+                'Este pedido já está cancelado.'
+            )
+        else:
+            pedido.cancelarPedido()
+            messages.success(
+                request,
+                f'Pedido #{pedido.id_pedido} cancelado com sucesso!'
+            )
+
+    return redirect('listar_pedidos')

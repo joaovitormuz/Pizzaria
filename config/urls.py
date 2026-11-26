@@ -77,5 +77,22 @@ urlpatterns = [
     'cliente/confirmar-pedido/',
     views.confirmar_pedido,
     name='confirmar_pedido'
-),
+    ),
+
+    path(
+    'pizzaria/pedidos/',
+    views.listar_pedidos,
+    name='listar_pedidos'
+    ),
+    path(
+    'pizzaria/pedidos/atualizar/<int:pk>/',
+    views.atualizar_status_pedido,
+    name='atualizar_status_pedido'
+    ),
+    
+    path(
+    'pizzaria/pedidos/cancelar/<int:pk>/',
+    views.cancelar_pedido,
+    name='cancelar_pedido'
+    ),
 ]

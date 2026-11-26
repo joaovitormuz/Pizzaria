@@ -1,8 +1,17 @@
+
 {% extends 'base.html' %}
 
 {% block title %}Área da Pizzaria{% endblock %}
 
 {% block content %}
+
 <h1>Área da Pizzaria</h1>
 <p>Gerenciamento do estabelecimento.</p>
+
+<h2>Gerenciamento de pedidos</h2>
+
+<a href="{% url 'listar_pedidos' %}">
+    <button type="button">Visualizar pedidos</button>
+</a>
+
 {% endblock %}

@@ -61,4 +61,21 @@ urlpatterns = [
     views.produtos_disponiveis,
     name='produtos_disponiveis'
     ),
+    path(
+    'cliente/carrinho/',
+    views.visualizar_carrinho,
+    name='visualizar_carrinho'
+    ),
+
+    path(
+    'cliente/carrinho/adicionar/<int:pk>/',
+    views.adicionar_ao_carrinho,
+    name='adicionar_ao_carrinho'
+    ),
+
+    path(
+    'cliente/confirmar-pedido/',
+    views.confirmar_pedido,
+    name='confirmar_pedido'
+),
 ]

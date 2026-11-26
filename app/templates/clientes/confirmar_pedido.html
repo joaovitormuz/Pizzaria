@@ -1,0 +1,24 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Pedido - Pizzaria{% endblock %}
+
+{% block content %}
+
+<h1>Confirmar Pedido</h1>
+
+<form method="POST">
+    {% csrf_token %}
+
+    {{ form.as_p }}
+
+    <button type="submit">
+        Confirmar pedido
+    </button>
+</form>
+
+<a href="{% url 'visualizar_carrinho' %}">
+    Voltar ao carrinho
+</a>
+
+{% endblock %}

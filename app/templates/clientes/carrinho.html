@@ -1,0 +1,46 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Meu Carrinho - Pizzaria{% endblock %}
+
+{% block content %}
+
+<h1>Meu Carrinho</h1>
+
+{% if produtos %}
+    <table>
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Quantidade</th>
+                <th>Preço unitário</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in produtos %}
+                <tr>
+                    <td>{{ item.produto.nome }}</td>
+                    <td>{{ item.quantidade }}</td>
+                    <td>R$ {{ item.produto.preco }}</td>
+                    <td>R$ {{ item.subtotal }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Total: R$ {{ total }}</h3>
+    <a href="{% url 'confirmar_pedido' %}">
+    <button type="button">Finalizar pedido</button>
+</a>
+
+{% else %}
+    <p>Seu carrinho está vazio.</p>
+{% endif %}
+
+<a href="{% url 'produtos_disponiveis' %}">
+    Continuar comprando
+</a>
+
+{% endblock %}

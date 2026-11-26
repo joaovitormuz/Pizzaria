@@ -44,3 +44,42 @@ class ClienteForm(forms.ModelForm):
             cliente.save()
 
         return cliente
+    
+class AdicionarProdutoForm(forms.Form):
+ quantidade = forms.IntegerField(
+  label='Quantidade',
+    min_value=1,
+ initial=1
+)
+
+class ConfirmarPedidoForm(forms.Form):
+
+    TIPO_ENTREGA_CHOICES = [
+        ('Entrega', 'Entrega'),
+        ('Retirada', 'Retirada'),
+    ]
+
+    tipo_entrega = forms.ChoiceField(
+        label='Tipo de entrega',
+        choices=TIPO_ENTREGA_CHOICES
+    )
+
+    endereco_entrega = forms.CharField(
+        label='Endereço de entrega',
+        max_length=255,
+        required=False
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        tipo_entrega = cleaned_data.get('tipo_entrega')
+        endereco = cleaned_data.get('endereco_entrega')
+
+        if tipo_entrega == 'Entrega' and not endereco:
+            self.add_error(
+                'endereco_entrega',
+                'Informe o endereço para entrega.'
+            )
+
+        return cleaned_data

@@ -4,8 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 
-from .models import Cliente, Pedido, Produto
-from .forms import ClienteForm
+from django.db import transaction
+from .models import Cliente, Pedido, Produto, ItemPedido
+from .forms import (
+    ClienteForm,
+    AdicionarProdutoForm,
+    ConfirmarPedidoForm
+)
 
 
 # =====================================================
@@ -248,3 +253,164 @@ def produtos_disponiveis(request):
         'clientes/produtos.html',
         {'produtos': produtos}
     )
+# =====================================================
+# ADICIONAR PRODUTO AO CARRINHO
+# =====================================================
+
+@login_required
+def adicionar_ao_carrinho(request, pk):
+    if not hasattr(request.user, 'cliente'):
+        return HttpResponseForbidden(
+            'Esta funcionalidade é exclusiva para clientes.'
+        )
+
+    if request.method != 'POST':
+        return redirect('produtos_disponiveis')
+
+    produto = get_object_or_404(
+        Produto,
+        pk=pk,
+        disponibilidade=True
+    )
+
+    form = AdicionarProdutoForm(request.POST)
+
+    if form.is_valid():
+        quantidade = form.cleaned_data['quantidade']
+
+        carrinho = request.session.get('carrinho', {})
+
+        produto_id = str(produto.pk)
+
+        carrinho[produto_id] = (
+            carrinho.get(produto_id, 0) + quantidade
+        )
+
+        request.session['carrinho'] = carrinho
+
+        messages.success(
+            request,
+            f'{produto.nome} adicionado ao carrinho!'
+        )
+
+    return redirect('produtos_disponiveis')
+
+    # =====================================================
+# VISUALIZAR CARRINHO
+# =====================================================
+
+@login_required
+def visualizar_carrinho(request):
+    if not hasattr(request.user, 'cliente'):
+        return HttpResponseForbidden(
+            'Esta funcionalidade é exclusiva para clientes.'
+        )
+
+    carrinho = request.session.get('carrinho', {})
+
+    produtos = []
+    total = 0
+
+    for produto_id, quantidade in carrinho.items():
+        try:
+            produto = Produto.objects.get(
+                pk=produto_id,
+                disponibilidade=True
+            )
+        except Produto.DoesNotExist:
+            continue
+
+        subtotal = produto.preco * quantidade
+
+        produtos.append({
+            'produto': produto,
+            'quantidade': quantidade,
+            'subtotal': subtotal
+        })
+
+        total += subtotal
+
+    return render(
+        request,
+        'clientes/carrinho.html',
+        {
+            'produtos': produtos,
+            'total': total
+        }
+    )
+
+# =====================================================
+# CONFIRMAR PEDIDO
+# =====================================================
+
+@login_required
+def confirmar_pedido(request):
+    if not hasattr(request.user, 'cliente'):
+        return HttpResponseForbidden(
+            'Esta funcionalidade é exclusiva para clientes.'
+        )
+
+    carrinho = request.session.get('carrinho', {})
+
+    if not carrinho:
+        messages.warning(request, 'Seu carrinho está vazio.')
+        return redirect('visualizar_carrinho')
+
+    if request.method == 'POST':
+        form = ConfirmarPedidoForm(request.POST)
+
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    pedido = Pedido.objects.create(
+                        cliente=request.user.cliente,
+                        tipo_entrega=form.cleaned_data['tipo_entrega'],
+                        endereco_entrega=(
+                            form.cleaned_data['endereco_entrega']
+                            if form.cleaned_data['tipo_entrega'] == 'Entrega'
+                            else ''
+                        )
+                    )
+
+                    for produto_id, quantidade in carrinho.items():
+                        produto = Produto.objects.get(
+                            pk=produto_id,
+                            disponibilidade=True
+                        )
+
+                        ItemPedido.objects.create(
+                            pedido=pedido,
+                            produto=produto,
+                            quantidade=quantidade,
+                            preco_unitario=produto.preco,
+                            subtotal=produto.preco * quantidade
+                        )
+
+                    pedido.calcularTotal()
+
+                del request.session['carrinho']
+
+                messages.success(
+                    request,
+                    f'Pedido #{pedido.id_pedido} realizado com sucesso!'
+                )
+
+                return redirect('meus_pedidos')
+
+            except Produto.DoesNotExist:
+                messages.error(
+                    request,
+                    'Um dos produtos do carrinho não está mais disponível.'
+                )
+                return redirect('visualizar_carrinho')
+
+    else:
+        form = ConfirmarPedidoForm()
+
+    return render(
+        request,
+        'clientes/confirmar_pedido.html',
+        {'form': form}
+    )
+
+

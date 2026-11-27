@@ -5,42 +5,173 @@
 
 {% block content %}
 
-<h1>Meu Carrinho</h1>
+<style>
+    .cart-header {
+        background: white;
+        border-radius: 12px;
+        padding: 25px 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .cart-title {
+        color: #a32121;
+        font-weight: 700;
+    }
+
+    .cart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .cart-table th {
+        background: #f8e8e8;
+        color: #a32121;
+        padding: 15px;
+        white-space: nowrap;
+    }
+
+    .cart-table td {
+        padding: 15px;
+        vertical-align: middle;
+    }
+
+    .cart-total {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        text-align: right;
+    }
+
+    .cart-total h3 {
+        color: #198754;
+        font-weight: 700;
+    }
+
+    .checkout-btn {
+        background: #a32121;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        padding: 12px 25px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: 0.2s;
+    }
+
+    .checkout-btn:hover {
+        background: #811919;
+        color: white;
+    }
+
+    .empty-cart {
+        background: white;
+        border-radius: 12px;
+        padding: 50px 20px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .empty-cart-icon {
+        font-size: 55px;
+        margin-bottom: 15px;
+    }
+</style>
+
+<!-- CABEÇALHO -->
+<div class="cart-header">
+    <h1 class="cart-title mb-2">🛒 Meu Carrinho</h1>
+
+    <p class="text-muted mb-0">
+        Confira os produtos selecionados antes de finalizar seu pedido.
+    </p>
+</div>
 
 {% if produtos %}
-    <table>
-        <thead>
-            <tr>
-                <th>Produto</th>
-                <th>Quantidade</th>
-                <th>Preço unitário</th>
-                <th>Subtotal</th>
-            </tr>
-        </thead>
 
-        <tbody>
-            {% for item in produtos %}
-                <tr>
-                    <td>{{ item.produto.nome }}</td>
-                    <td>{{ item.quantidade }}</td>
-                    <td>R$ {{ item.produto.preco }}</td>
-                    <td>R$ {{ item.subtotal }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="cart-container">
 
-    <h3>Total: R$ {{ total }}</h3>
-    <a href="{% url 'confirmar_pedido' %}">
-    <button type="button">Finalizar pedido</button>
-</a>
+        <div class="table-responsive">
+            <table class="table table-hover cart-table mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th class="text-center">Quantidade</th>
+                        <th class="text-end">Preço unitário</th>
+                        <th class="text-end">Subtotal</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in produtos %}
+                        <tr>
+                            <td class="fw-semibold">
+                                🍕 {{ item.produto.nome }}
+                            </td>
+
+                            <td class="text-center">
+                                {{ item.quantidade }}
+                            </td>
+
+                            <td class="text-end">
+                                R$ {{ item.produto.preco|floatformat:2 }}
+                            </td>
+
+                            <td class="text-end fw-semibold">
+                                R$ {{ item.subtotal|floatformat:2 }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+        <!-- TOTAL -->
+        <div class="cart-total">
+            <span class="text-muted">Valor total do pedido</span>
+
+            <h3 class="mt-2 mb-3">
+                R$ {{ total|floatformat:2 }}
+            </h3>
+
+            <a href="{% url 'confirmar_pedido' %}" class="checkout-btn">
+                Finalizar pedido →
+            </a>
+        </div>
+
+    </div>
 
 {% else %}
-    <p>Seu carrinho está vazio.</p>
+
+    <div class="empty-cart">
+        <div class="empty-cart-icon">🛒</div>
+
+        <h4 class="fw-bold">Seu carrinho está vazio</h4>
+
+        <p class="text-muted">
+            Você ainda não adicionou nenhum produto ao carrinho.
+        </p>
+
+        <a href="{% url 'produtos_disponiveis' %}"
+           class="checkout-btn mt-2">
+            Explorar produtos
+        </a>
+    </div>
+
 {% endif %}
 
-<a href="{% url 'produtos_disponiveis' %}">
-    Continuar comprando
-</a>
+<!-- RODAPÉ -->
+<div class="mt-4 pt-3 border-top">
+    <a href="{% url 'produtos_disponiveis' %}"
+       class="btn btn-outline-secondary">
+        ← Continuar comprando
+    </a>
+</div>
 
 {% endblock %}

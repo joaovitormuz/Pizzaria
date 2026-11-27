@@ -5,76 +5,146 @@
 
 {% block content %}
 
-<div class="text-center mb-5">
-    <h1 class="fw-bold">Sistema de Gerenciamento</h1>
-    <p class="text-muted">Bem-vindo ao sistema da pizzaria!</p>
+<style>
+    .home-header {
+        background: white;
+        border-radius: 12px;
+        padding: 35px;
+        margin-bottom: 35px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .home-title {
+        color: #a32121;
+        font-weight: 700;
+    }
+
+    .home-section-title {
+        color: #343a40;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 18px;
+    }
+
+    .home-card {
+        display: block;
+        background: white;
+        border: 1px solid #e9e9e9;
+        border-radius: 12px;
+        padding: 30px 22px;
+        height: 100%;
+        text-align: center;
+        text-decoration: none;
+        color: #343a40;
+        transition: 0.2s;
+    }
+
+    .home-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.09);
+        border-color: #a32121;
+        color: #a32121;
+    }
+
+    .home-icon {
+        font-size: 45px;
+        margin-bottom: 18px;
+    }
+
+    .home-card h5 {
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .home-card p {
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+
+    .home-footer {
+        margin-top: 35px;
+        padding-top: 22px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        justify-content: flex-end;
+    }
+</style>
+
+<!-- CABEÇALHO -->
+<div class="home-header">
+    <div class="home-icon">🍕</div>
+
+    <h1 class="home-title mb-2">
+        Sistema de Gerenciamento
+    </h1>
+
+    <p class="text-muted mb-0">
+        Bem-vindo ao sistema da pizzaria!
+        Selecione uma área para continuar.
+    </p>
 </div>
+
+<!-- ÁREAS DO SISTEMA -->
+<h4 class="home-section-title">Acessar sistema</h4>
 
 <div class="row g-4">
 
-    <div class="col-12 col-md-6 col-lg-3">
-        <a href="{% url 'area_cliente' %}" class="text-decoration-none text-dark">
-            <div class="card shadow-sm h-100 text-center">
-                <div class="card-body">
-                    <h2>👥</h2>
-                    <h5>Clientes</h5>
-                    <p>Gerenciamento de clientes.</p>
-                </div>
-            </div>
+    <div class="col-12 col-md-6 col-lg-4">
+        <a href="{% url 'area_cliente' %}" class="home-card">
+            <div class="home-icon">👥</div>
+
+            <h5>Área do Cliente</h5>
+
+            <p>
+                Consulte produtos disponíveis e acompanhe seus pedidos.
+            </p>
         </a>
     </div>
 
-    <div class="col-12 col-md-6 col-lg-3">
-        <a href="{% url 'area_pizzaria' %}" class="text-decoration-none text-dark">
-            <div class="card shadow-sm h-100 text-center">
-                <div class="card-body">
-                    <h2>🍕</h2>
-                    <h5>Área da Pizzaria</h5>
-                    <p>Gerencie produtos, clientes, funcionários e estoque.</p>
-                </div>
-            </div>
+    <div class="col-12 col-md-6 col-lg-4">
+        <a href="{% url 'area_pizzaria' %}" class="home-card">
+            <div class="home-icon">🍕</div>
+
+            <h5>Área da Pizzaria</h5>
+
+            <p>
+                Gerencie pedidos, produtos, equipe e estoque.
+            </p>
         </a>
     </div>
 
-    <div class="col-12 col-md-6 col-lg-3">
-        <a href="{% url 'area_entregador' %}" class="text-decoration-none text-dark">
-            <div class="card shadow-sm h-100 text-center">
-                <div class="card-body">
-                    <h2>🚚</h2>
-                    <h5>Área do Entregador</h5>
-                    <p>Consulte e atualize suas entregas.</p>
-                </div>
-            </div>
+    <div class="col-12 col-md-6 col-lg-4">
+        <a href="{% url 'area_entregador' %}" class="home-card">
+            <div class="home-icon">🚚</div>
+
+            <h5>Área do Entregador</h5>
+
+            <p>
+                Consulte e acompanhe suas entregas.
+            </p>
         </a>
     </div>
 
-    <div class="col-12 col-md-6 col-lg-3">
-        <a href="{% url 'visao_geral' %}" class="text-decoration-none text-dark">
-            <div class="card shadow-sm h-100 text-center">
-                <div class="card-body">
-                    <h2>📊</h2>
-                    <h5>Visão Geral</h5>
-                    <p>Acesse o gerenciamento completo da pizzaria.</p>
-                </div>
-            </div>
+</div>
+
+<!-- RODAPÉ -->
+<div class="home-footer">
+
+    {% if user.is_authenticated %}
+        <form method="POST" action="{% url 'logout' %}"
+              onsubmit="return confirm('Tem certeza de que deseja sair da sua conta?');">
+            {% csrf_token %}
+
+            <button type="submit" class="btn btn-danger px-4">
+                Sair da conta
+            </button>
+        </form>
+    {% else %}
+        <a href="{% url 'login' %}" class="btn btn-danger px-4">
+            Entrar no sistema
         </a>
-    </div>
-
-    
- {% if user.is_authenticated %}
-    <form method="POST" action="{% url 'logout' %}"
-          onsubmit="return confirm('Tem certeza de que deseja sair da sua conta?');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">
-            Logout
-        </button>
-    </form>
- {% else %}
-    <a href="{% url 'login' %}" class="btn btn-primary">
-        Login
-    </a>
- {% endif %}
-
+    {% endif %}
 
 </div>
 

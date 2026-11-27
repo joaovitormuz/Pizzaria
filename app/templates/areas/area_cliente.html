@@ -4,19 +4,136 @@
 {% block title %}Área do Cliente - Pizzaria{% endblock %}
 
 {% block content %}
-<h1>Área do Cliente</h1>
-<p>Bem-vindo à área do cliente!</p>
 
-<a href="{% url 'meus_pedidos' %}">
-    <button type="button">Meus pedidos</button>
-</a>
+<style>
+    .client-header {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
 
-<a href="{% url 'produtos_disponiveis' %}">
-    <button type="button">Ver produtos</button>
-</a>
+    .client-title {
+        color: #a32121;
+        font-weight: 700;
+    }
 
-<a href="{% url 'home' %}" class="btn btn-secondary">
-    Voltar à Home
-</a>
+    .client-section-title {
+        color: #343a40;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 18px;
+    }
+
+    .client-card {
+        background: white;
+        border: 1px solid #e9e9e9;
+        border-radius: 12px;
+        padding: 25px;
+        height: 100%;
+        transition: 0.2s;
+    }
+
+    .client-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.09);
+        border-color: #a32121;
+    }
+
+    .client-icon {
+        font-size: 38px;
+        margin-bottom: 15px;
+    }
+
+    .client-card h5 {
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .client-card p {
+        color: #6c757d;
+        min-height: 45px;
+    }
+
+    .client-btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background: #a32121;
+        color: white;
+        text-decoration: none;
+        text-align: center;
+        border-radius: 7px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+    .client-btn:hover {
+        background: #811919;
+        color: white;
+    }
+
+    .client-footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+    }
+</style>
+
+<!-- CABEÇALHO -->
+<div class="client-header">
+    <h1 class="client-title mb-2">Área do Cliente</h1>
+
+    <p class="text-muted mb-0">
+        Bem-vindo à sua área! Consulte seus pedidos e confira nossos produtos.
+    </p>
+</div>
+
+<!-- SERVIÇOS -->
+<h4 class="client-section-title">Meu atendimento</h4>
+
+<div class="row g-4">
+
+    <div class="col-md-6">
+        <div class="client-card">
+            <div class="client-icon">📋</div>
+
+            <h5>Meus Pedidos</h5>
+
+            <p>
+                Consulte seus pedidos e acompanhe o andamento de cada um.
+            </p>
+
+            <a href="{% url 'meus_pedidos' %}" class="client-btn">
+                Consultar pedidos
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="client-card">
+            <div class="client-icon">🍕</div>
+
+            <h5>Produtos</h5>
+
+            <p>
+                Confira os produtos disponíveis e escolha o que deseja pedir.
+            </p>
+
+            <a href="{% url 'produtos_disponiveis' %}" class="client-btn">
+                Ver produtos
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- RODAPÉ -->
+<div class="client-footer">
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+        ← Voltar à Home
+    </a>
+</div>
 
 {% endblock %}

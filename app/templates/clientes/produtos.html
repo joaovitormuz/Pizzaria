@@ -5,46 +5,203 @@
 
 {% block content %}
 
-<h1>Produtos disponíveis</h1>
+<style>
+    .products-header {
+        background: white;
+        border-radius: 12px;
+        padding: 25px 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
 
-<p>
-    <a href="{% url 'visualizar_carrinho' %}">
-        Visualizar carrinho
-    </a>
-</p>
+    .products-title {
+        color: #a32121;
+        font-weight: 700;
+    }
 
-{% if produtos %}
-    {% for produto in produtos %}
+    .product-card {
+        background: white;
+        border: 1px solid #e9e9e9;
+        border-radius: 12px;
+        padding: 24px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: 0.2s;
+    }
+
+    .product-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.09);
+        border-color: #a32121;
+    }
+
+    .product-icon {
+        font-size: 38px;
+        margin-bottom: 12px;
+    }
+
+    .product-card h5 {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .product-category {
+        display: inline-block;
+        background: #f8e8e8;
+        color: #a32121;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+        align-self: flex-start;
+    }
+
+    .product-description {
+        color: #6c757d;
+        flex-grow: 1;
+    }
+
+    .product-price {
+        color: #198754;
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 15px 0;
+    }
+
+    .quantity-input {
+        max-width: 100px;
+    }
+
+    .add-button {
+        background: #a32121;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        padding: 11px;
+        width: 100%;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+    .add-button:hover {
+        background: #811919;
+    }
+
+    .empty-products {
+        background: white;
+        border-radius: 12px;
+        padding: 45px 20px;
+        text-align: center;
+        color: #6c757d;
+    }
+</style>
+
+<!-- CABEÇALHO -->
+<div class="products-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
         <div>
-            <h3>{{ produto.nome }}</h3>
-            <p>Categoria: {{ produto.categoria }}</p>
-            <p>{{ produto.descricao }}</p>
-            <p>Preço: R$ {{ produto.preco }}</p>
-
-            <form method="POST"
-                  action="{% url 'adicionar_ao_carrinho' produto.pk %}">
-                {% csrf_token %}
-
-                <label>Quantidade:</label>
-                <input
-                    type="number"
-                    name="quantidade"
-                    value="1"
-                    min="1"
-                    required
-                >
-
-                <button type="submit">
-                    Adicionar ao carrinho
-                </button>
-            </form>
+            <h1 class="products-title mb-2">Produtos disponíveis</h1>
+            <p class="text-muted mb-0">
+                Confira nosso cardápio e escolha seus produtos favoritos.
+            </p>
         </div>
-        <hr>
-    {% endfor %}
+
+        <a href="{% url 'visualizar_carrinho' %}"
+           class="btn btn-outline-danger px-4 py-2">
+            🛒 Visualizar carrinho
+        </a>
+
+    </div>
+</div>
+
+<!-- LISTAGEM DE PRODUTOS -->
+{% if produtos %}
+
+    <div class="row g-4">
+
+        {% for produto in produtos %}
+
+            <div class="col-12 col-md-6 col-lg-4">
+
+                <div class="product-card">
+
+                    <div class="product-icon">🍕</div>
+
+                    <h5>{{ produto.nome }}</h5>
+
+                    <span class="product-category">
+                        {{ produto.categoria }}
+                    </span>
+
+                    <p class="product-description">
+                        {{ produto.descricao }}
+                    </p>
+
+                    <div class="product-price">
+                        R$ {{ produto.preco|floatformat:2 }}
+                    </div>
+
+                    <form method="POST"
+                          action="{% url 'adicionar_ao_carrinho' produto.pk %}">
+
+                        {% csrf_token %}
+
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+
+                            <label for="quantidade-{{ produto.pk }}"
+                                   class="fw-semibold">
+                                Quantidade:
+                            </label>
+
+                            <input
+                                id="quantidade-{{ produto.pk }}"
+                                type="number"
+                                name="quantidade"
+                                value="1"
+                                min="1"
+                                required
+                                class="form-control quantity-input"
+                            >
+
+                        </div>
+
+                        <button type="submit" class="add-button">
+                            + Adicionar ao carrinho
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
 {% else %}
-    <p>Nenhum produto disponível no momento.</p>
+
+    <div class="empty-products">
+        <div style="font-size: 45px;">🍕</div>
+
+        <h5 class="mt-3">Nenhum produto disponível</h5>
+
+        <p class="mb-0">
+            Não há produtos disponíveis no momento. Volte mais tarde!
+        </p>
+    </div>
+
 {% endif %}
 
-<a href="{% url 'area_cliente' %}">Voltar</a>
+<!-- RODAPÉ -->
+<div class="mt-4 pt-3 border-top">
+    <a href="{% url 'area_cliente' %}"
+       class="btn btn-outline-secondary">
+        ← Voltar à Área do Cliente
+    </a>
+</div>
 
 {% endblock %}

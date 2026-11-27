@@ -1,50 +1,202 @@
 
 {% extends 'base.html' %}
 
-{% block title %}Meus pedidos - Pizzaria{% endblock %}
+{% block title %}Meus Pedidos - Pizzaria{% endblock %}
 
 {% block content %}
 
-<h2 class="mb-4">Meus pedidos</h2>
+<style>
+    .orders-header {
+        background: white;
+        border-radius: 12px;
+        padding: 25px 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
 
-<div class="card shadow-sm">
-    <div class="card-body">
+    .orders-title {
+        color: #a32121;
+        font-weight: 700;
+    }
 
-        <table class="table table-striped table-hover">
+    .orders-container {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .orders-table th {
+        background: #f8e8e8;
+        color: #a32121;
+        padding: 15px;
+        white-space: nowrap;
+    }
+
+    .orders-table td {
+        padding: 15px;
+        vertical-align: middle;
+    }
+
+    .order-number {
+        font-weight: 700;
+        color: #a32121;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 11px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .status-pendente {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-preparacao {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .status-pronto {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-entrega {
+        background: #cff4fc;
+        color: #055160;
+    }
+
+    .status-concluido {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-cancelado {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .empty-orders {
+        text-align: center;
+        padding: 45px 20px;
+        color: #6c757d;
+    }
+
+    .empty-orders-icon {
+        font-size: 50px;
+        margin-bottom: 15px;
+    }
+</style>
+
+<!-- CABEÇALHO -->
+<div class="orders-header">
+    <h1 class="orders-title mb-2">📋 Meus Pedidos</h1>
+
+    <p class="text-muted mb-0">
+        Consulte seus pedidos e acompanhe o andamento de cada um.
+    </p>
+</div>
+
+<!-- PEDIDOS -->
+<div class="orders-container">
+
+    <div class="table-responsive">
+
+        <table class="table table-hover orders-table mb-0">
+
             <thead>
                 <tr>
                     <th>Número</th>
                     <th>Data</th>
                     <th>Status</th>
                     <th>Tipo de entrega</th>
-                    <th>Valor total</th>
+                    <th class="text-end">Valor total</th>
                 </tr>
             </thead>
 
             <tbody>
+
                 {% for pedido in pedidos %}
-                <tr>
-                    <td>#{{ pedido.id_pedido }}</td>
-                    <td>{{ pedido.data_hora|date:"d/m/Y H:i" }}</td>
-                    <td>{{ pedido.status }}</td>
-                    <td>{{ pedido.tipo_entrega }}</td>
-                    <td>R$ {{ pedido.preco_total }}</td>
-                </tr>
+
+                    <tr>
+                        <td class="order-number">
+                            #{{ pedido.id_pedido }}
+                        </td>
+
+                        <td>
+                            {{ pedido.data_hora|date:"d/m/Y H:i" }}
+                        </td>
+
+                        <td>
+                            {% with status=pedido.status|lower %}
+                                <span class="status-badge
+                                    {% if status == 'pendente' %}status-pendente
+                                    {% elif status == 'em preparação' or status == 'em preparacao' %}status-preparacao
+                                    {% elif status == 'pronto' %}status-pronto
+                                    {% elif status == 'em entrega' %}status-entrega
+                                    {% elif status == 'concluído' or status == 'concluido' %}status-concluido
+                                    {% elif status == 'cancelado' %}status-cancelado
+                                    {% endif %}">
+                                    {{ pedido.status }}
+                                </span>
+                            {% endwith %}
+                        </td>
+
+                        <td>
+                            {{ pedido.tipo_entrega }}
+                        </td>
+
+                        <td class="text-end fw-semibold">
+                            R$ {{ pedido.preco_total|floatformat:2 }}
+                        </td>
+                    </tr>
+
                 {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">
-                        Você ainda não possui pedidos.
-                    </td>
-                </tr>
+
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-orders">
+                                <div class="empty-orders-icon">🛒</div>
+
+                                <h5 class="fw-bold">
+                                    Você ainda não possui pedidos
+                                </h5>
+
+                                <p class="mb-3">
+                                    Explore nossos produtos e faça seu primeiro pedido!
+                                </p>
+
+                                <a href="{% url 'produtos_disponiveis' %}"
+                                   class="btn btn-danger">
+                                    Ver produtos
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+
                 {% endfor %}
+
             </tbody>
+
         </table>
 
     </div>
+
 </div>
 
-<a href="{% url 'area_cliente' %}" class="btn btn-secondary mt-3">
-    Voltar
-</a>
+<!-- RODAPÉ -->
+<div class="mt-4 pt-3 border-top">
+    <a href="{% url 'area_cliente' %}"
+       class="btn btn-outline-secondary">
+        ← Voltar à Área do Cliente
+    </a>
+</div>
 
 {% endblock %}

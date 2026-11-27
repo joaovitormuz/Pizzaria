@@ -5,53 +5,262 @@
 
 {% block content %}
 
-<h1>Área da Pizzaria</h1>
-<p>Gerenciamento do estabelecimento.</p>
+<style>
+    .dashboard-header {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
 
-<h2>Gerenciamento de pedidos</h2>
+    .dashboard-title {
+        color: #a32121;
+        font-weight: 700;
+    }
 
-<a href="{% url 'listar_pedidos' %}">
-    <button type="button">Visualizar pedidos</button>
-</a>
+    .cash-card {
+        background: #fff;
+        border-left: 5px solid #198754;
+        border-radius: 10px;
+        padding: 18px 22px;
+        min-width: 220px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
 
-<a href="{% url 'listar_produtos' %}" class="btn btn-primary">
-    Produtos
-</a>
+    .section-title {
+        color: #343a40;
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
 
-<a href="{% url 'listar_receitas' %}" class="btn btn-primary">
-    Receitas
-</a>
+    .dashboard-card {
+        background: white;
+        border: 1px solid #e9e9e9;
+        border-radius: 12px;
+        padding: 22px;
+        height: 100%;
+        transition: 0.2s;
+    }
 
-<a href="{% url 'cadastrar_funcionario' %}" class="btn btn-primary">
-    Cadastrar Funcionário
-</a>
+    .dashboard-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.09);
+        border-color: #a32121;
+    }
 
-<a href="{% url 'cadastrar_entregador' %}" class="btn btn-primary">
-    Cadastrar Entregador
-</a>
+    .card-icon {
+        font-size: 30px;
+        margin-bottom: 12px;
+    }
 
-<a href="{% url 'listar_ingredientes' %}" class="btn btn-primary">
-    Cadastrar Ingredientes
-</a>
+    .dashboard-card h5 {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
 
-<a href="{% url 'listar_estoque' %}" class="btn btn-primary">
-    Gerenciar Estoque
-</a>
+    .dashboard-card p {
+        color: #6c757d;
+        font-size: 0.9rem;
+        min-height: 40px;
+    }
 
-<a href="{% url 'listar_pedidos' %}" class="btn btn-primary">
-    Gerenciar Pedidos
-</a>
+    .dashboard-btn {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        background: #a32121;
+        color: white;
+        text-decoration: none;
+        text-align: center;
+        border-radius: 7px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
 
-<a href="{% url 'listar_processamentos' %}" class="btn btn-primary">
-    Processamento de Pedidos
-</a>
+    .dashboard-btn:hover {
+        background: #811919;
+        color: white;
+    }
 
-<a href="{% url 'listar_entregas' %}" class="btn btn-primary">
-    Gerenciar Entregas
-</a>
+    .dashboard-footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+    }
+</style>
 
-<a href="{% url 'home' %}" class="btn btn-secondary">
-    Voltar à Home
-</a>
+<!-- CABEÇALHO -->
+<div class="dashboard-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+
+        <div>
+            <h1 class="dashboard-title mb-2">Área da Pizzaria</h1>
+
+            {% if caixa %}
+                <h5 class="mb-1">{{ caixa.pizzaria.nome }}</h5>
+            {% endif %}
+
+            <p class="text-muted mb-0">
+                Painel de gerenciamento do estabelecimento.
+            </p>
+        </div>
+
+        <div class="cash-card">
+            <small class="text-muted fw-bold">SALDO ATUAL DO CAIXA</small>
+
+            {% if caixa %}
+                <h3 class="text-success fw-bold mt-2 mb-2">
+                    R$ {{ caixa.saldo_atual|floatformat:2 }}
+                </h3>
+
+                <a href="{% url 'consultar_caixa' %}"
+                   class="btn btn-outline-success btn-sm">
+                    Ver movimentações
+                </a>
+            {% else %}
+                <p class="text-danger mt-2 mb-0">
+                    Caixa não cadastrado.
+                </p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<!-- OPERAÇÕES -->
+<h4 class="section-title">Operações</h4>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">📋</div>
+            <h5>Pedidos</h5>
+            <p>Consulte e gerencie os pedidos realizados pelos clientes.</p>
+            <a href="{% url 'listar_pedidos' %}" class="dashboard-btn">
+                Gerenciar pedidos
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">🚚</div>
+            <h5>Entregas</h5>
+            <p>Atribua entregadores e acompanhe as entregas.</p>
+            <a href="{% url 'listar_entregas' %}" class="dashboard-btn">
+                Gerenciar entregas
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- PRODUTOS E ESTOQUE -->
+<h4 class="section-title">Produtos e Estoque</h4>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">🍕</div>
+            <h5>Produtos</h5>
+            <p>Consulte, cadastre, edite e exclua produtos.</p>
+            <a href="{% url 'listar_produtos' %}" class="dashboard-btn">
+                Gerenciar produtos
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">📖</div>
+            <h5>Receitas</h5>
+            <p>Gerencie as receitas e os ingredientes dos produtos.</p>
+            <a href="{% url 'listar_receitas' %}" class="dashboard-btn">
+                Gerenciar receitas
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">📦</div>
+            <h5>Estoque</h5>
+            <p>Controle quantidades e acompanhe os níveis de estoque.</p>
+            <a href="{% url 'listar_estoque' %}" class="dashboard-btn">
+                Gerenciar estoque
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">🥬</div>
+            <h5>Ingredientes</h5>
+            <p>Consulte e cadastre os ingredientes utilizados.</p>
+            <a href="{% url 'listar_ingredientes' %}" class="dashboard-btn">
+                Gerenciar ingredientes
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- EQUIPE -->
+<h4 class="section-title">Equipe</h4>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">👨‍🍳</div>
+            <h5>Funcionários</h5>
+            <p>Cadastre novos funcionários para a pizzaria.</p>
+            <a href="{% url 'cadastrar_funcionario' %}" class="dashboard-btn">
+                Cadastrar funcionário
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">🛵</div>
+            <h5>Entregadores</h5>
+            <p>Cadastre novos entregadores para as operações.</p>
+            <a href="{% url 'cadastrar_entregador' %}" class="dashboard-btn">
+                Cadastrar entregador
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- ACOMPANHAMENTO -->
+<h4 class="section-title">Acompanhamento</h4>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-lg-4">
+        <div class="dashboard-card">
+            <div class="card-icon">👨‍🍳</div>
+            <h5>Processamento de Pedidos</h5>
+            <p>Acompanhe o andamento da preparação dos pedidos.</p>
+            <a href="{% url 'listar_processamentos' %}" class="dashboard-btn">
+                Consultar processamento
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- RODAPÉ -->
+<div class="dashboard-footer">
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+        ← Voltar à Home
+    </a>
+</div>
 
 {% endblock %}

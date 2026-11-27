@@ -49,3 +49,6 @@
 # Pagamentos
 
 # Processamento de Pedidos
+
+# Caixa e Fluxo de Caixa
+

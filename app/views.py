@@ -40,7 +40,9 @@ from .models import (
     Receita,
     MovimentacaoEstoque,
     Pagamento,
-    ProcessamentoPedido
+    ProcessamentoPedido,
+    CaixaPizzaria,
+    MovimentacaoCaixa
 )
 
 
@@ -102,7 +104,15 @@ def area_pizzaria(request):
             'Acesso permitido somente para funcionários autorizados.'
         )
 
-    return render(request, 'areas/area_pizzaria.html')
+    caixa = CaixaPizzaria.objects.select_related(
+        'pizzaria'
+    ).first()
+
+    return render(
+        request,
+        'areas/area_pizzaria.html',
+        {'caixa': caixa}
+    )
 
 
 @login_required
@@ -566,6 +576,7 @@ def listar_pedidos(request):
         'status_choices': Pedido.STATUS_CHOICES
     }
     )
+    
 
 # =====================================================
 # ATUALIZAR STATUS DO PEDIDO
@@ -1444,3 +1455,35 @@ def atualizar_status_pagamento(request, id_pagamento):
         messages.success(request, 'Pagamento atualizado com sucesso.')
 
     return redirect('listar_pagamentos')
+
+# =====================================================
+# CONSULTAR CAIXA DA PIZZARIA
+# =====================================================
+
+@login_required
+def consultar_caixa(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    caixa = CaixaPizzaria.objects.select_related(
+        'pizzaria'
+    ).first()
+
+    movimentacoes = []
+
+    if caixa:
+        movimentacoes = MovimentacaoCaixa.objects.filter(
+            caixa=caixa
+        ).select_related(
+            'funcionario',
+            'pedido'
+        ).order_by('-data_movimentacao')
+
+    return render(
+        request,
+        'caixa/consultar.html',
+        {
+            'caixa': caixa,
+            'movimentacoes': movimentacoes,
+        }
+    )

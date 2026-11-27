@@ -18,6 +18,8 @@ from .models import (
     Pagamento,
     ProcessamentoPedido,
     Entrega,
+    CaixaPizzaria,
+    MovimentacaoCaixa,
 )
 
 
@@ -103,6 +105,34 @@ class PizzariaAdmin(admin.ModelAdmin):
     list_display = ('nome', 'email', 'numero_telefone')
     search_fields = ('nome',)
 
+# Caixa da pizzaria
+@admin.register(CaixaPizzaria)
+class CaixaPizzariaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_caixa',
+        'pizzaria',
+        'saldo_atual',
+        'data_abertura',
+        'data_atualizacao',
+    )
+
+
+# Movimentações do caixa
+@admin.register(MovimentacaoCaixa)
+class MovimentacaoCaixaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_movimentacao',
+        'caixa',
+        'tipo',
+        'origem',
+        'descricao',
+        'valor',
+        'data_movimentacao',
+        'funcionario',
+    )
+    list_filter = ('tipo', 'origem', 'data_movimentacao')
+    search_fields = ('descricao',)
+    ordering = ('-data_movimentacao',)
 
 # Ingredientes
 @admin.register(Ingrediente)

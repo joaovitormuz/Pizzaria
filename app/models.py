@@ -143,6 +143,108 @@ class Pizzaria(models.Model):
     def __str__(self):
         return self.nome
 
+    
+class CaixaPizzaria(models.Model):
+
+    id_caixa = models.AutoField(primary_key=True)
+
+    pizzaria = models.OneToOneField(
+        'app.Pizzaria',
+        on_delete=models.CASCADE,
+        related_name='caixa'
+    )
+
+    saldo_atual = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    data_abertura = models.DateTimeField(auto_now_add=True)
+
+    data_atualizacao = models.DateTimeField(auto_now=True)
+
+    def atualizarSaldo(self):
+        pass
+
+    def consultarSaldo(self):
+        return self.saldo_atual
+
+    def abrirCaixa(self):
+        pass
+
+    def __str__(self):
+        return f'Caixa da {self.pizzaria.nome}'
+
+
+class MovimentacaoCaixa(models.Model):
+
+    TIPOS_MOVIMENTACAO = [
+        ('Entrada', 'Entrada'),
+        ('Saida', 'Saída'),
+    ]
+
+    ORIGENS = [
+        ('Pedido', 'Pedido'),
+        ('Compra', 'Compra'),
+        ('Manual', 'Manual'),
+    ]
+
+    id_movimentacao = models.AutoField(primary_key=True)
+
+    caixa = models.ForeignKey(
+        CaixaPizzaria,
+        on_delete=models.PROTECT,
+        related_name='movimentacoes'
+    )
+
+    tipo = models.CharField(
+        max_length=10,
+        choices=TIPOS_MOVIMENTACAO
+    )
+
+    origem = models.CharField(
+        max_length=20,
+        choices=ORIGENS
+    )
+
+    descricao = models.CharField(max_length=255)
+
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+
+    data_movimentacao = models.DateTimeField(auto_now_add=True)
+
+    funcionario = models.ForeignKey(
+        Funcionario,
+        on_delete=models.PROTECT,
+        related_name='movimentacoes_caixa',
+        null=True,
+        blank=True
+    )
+
+    pedido = models.ForeignKey(
+         'app.Pedido',
+        on_delete=models.PROTECT,
+        related_name='movimentacoes_caixa',
+        null=True,
+        blank=True
+    )
+
+    def registrarMovimentacao(self):
+        pass
+
+    def consultarMovimentacoes(self):
+        return self.caixa.movimentacoes.all()
+
+    def consultar(self):
+        return self
+
+    def __str__(self):
+        return f'{self.tipo} - R$ {self.valor}'
+
 
 # =====================================================
 # GERENCIAMENTO DE INGREDIENTES 

@@ -42,7 +42,38 @@ from .forms import (
     PizzariaForm,
 )
 
-# Direcionamento por tipo de usuario
+
+# =====================================================
+# VERIFICAÇÃO DE PERMISSÕES
+# =====================================================
+
+def acesso_administrativo(user):
+    return user.is_authenticated and user.is_superuser
+
+
+def usuario_tem_funcao(user, funcoes):
+    if not user.is_authenticated:
+        return False
+
+    # Administrador possui acesso a todas as funcionalidades.
+    if user.is_superuser:
+        return True
+
+    funcionario = Funcionario.objects.filter(pk=user.pk).first()
+
+    if funcionario is None:
+        return False
+
+    return funcionario.funcao in funcoes
+
+
+def acesso_negado(request):
+    return render(request, 'acesso_negado.html')
+
+
+# =====================================================
+# DIRECIONAMENTO POR TIPO DE USUÁRIO
+# =====================================================
 
 class LoginPerfilView(LoginView):
     template_name = 'usuarios/login.html'
@@ -52,7 +83,7 @@ class LoginPerfilView(LoginView):
         usuario = self.request.user
 
         if usuario.is_superuser:
-            return '/home/'
+            return '/'
 
         if hasattr(usuario, 'entregador'):
             return '/entregador/'
@@ -66,7 +97,6 @@ class LoginPerfilView(LoginView):
         return '/'
 
 
-
 # =====================================================
 # PÁGINAS PRINCIPAIS
 # =====================================================
@@ -75,14 +105,13 @@ def home(request):
     return render(request, 'home.html')
 
 
-
 # =====================================================
 # ÁREAS COM CONTROLE DE ACESSO
 # =====================================================
 
 @login_required
 def area_cliente(request):
-    if not hasattr(request.user, 'cliente'):
+    if not request.user.is_superuser and not hasattr(request.user, 'cliente'):
         return HttpResponseForbidden(
             'Acesso permitido somente para clientes.'
         )
@@ -92,14 +121,12 @@ def area_cliente(request):
 
 @login_required
 def area_pizzaria(request):
-    if not request.user.is_staff:
+    if not request.user.is_superuser and not request.user.is_staff:
         return HttpResponseForbidden(
             'Acesso permitido somente para funcionários autorizados.'
         )
 
-    caixa = CaixaPizzaria.objects.select_related(
-        'pizzaria'
-    ).first()
+    caixa = CaixaPizzaria.objects.select_related('pizzaria').first()
 
     return render(
         request,
@@ -110,7 +137,7 @@ def area_pizzaria(request):
 
 @login_required
 def area_entregador(request):
-    if not hasattr(request.user, 'entregador'):
+    if not request.user.is_superuser and not hasattr(request.user, 'entregador'):
         return HttpResponseForbidden(
             'Acesso permitido somente para entregadores.'
         )
@@ -120,13 +147,12 @@ def area_entregador(request):
 
 @login_required
 def visao_geral(request):
-    if not request.user.is_superuser:
+    if not acesso_administrativo(request.user):
         return HttpResponseForbidden(
             'Acesso permitido somente para administradores.'
         )
 
     return render(request, 'areas/visao_geral.html')
-
 
 
 # =====================================================
@@ -159,7 +185,7 @@ def cadastro_publico_cliente(request):
 
 
 # =====================================================
-# Cadastro Funcionario
+# FUNCIONÁRIOS
 # =====================================================
 
 @login_required
@@ -182,10 +208,6 @@ def cadastrar_funcionario(request):
         'titulo': 'Cadastrar Funcionário'
     })
 
-
-# =====================================================
-# Editar Funcionario
-# =====================================================
 
 @login_required
 def editar_funcionario(request, id_funcionario):
@@ -210,10 +232,6 @@ def editar_funcionario(request, id_funcionario):
     })
 
 
-# =====================================================
-# Listar Funcionarios
-# =====================================================
-
 @login_required
 def listar_funcionarios(request):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -224,8 +242,10 @@ def listar_funcionarios(request):
     return render(request, 'funcionarios/listar.html', {
         'funcionarios': funcionarios
     })
+
+
 # =====================================================
-# Cadastro Entregador
+# ENTREGADORES - CADASTRO E GERENCIAMENTO
 # =====================================================
 
 @login_required
@@ -238,10 +258,7 @@ def cadastrar_entregador(request):
 
         if form.is_valid():
             form.save()
-            messages.success(
-                request,
-                'Entregador cadastrado com sucesso!'
-            )
+            messages.success(request, 'Entregador cadastrado com sucesso!')
             return redirect('area_pizzaria')
     else:
         form = EntregadorForm()
@@ -252,10 +269,6 @@ def cadastrar_entregador(request):
     })
 
 
-# =====================================================
-# Editar Entregador
-# =====================================================
-
 @login_required
 def editar_entregador(request, id_entregador):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -264,17 +277,11 @@ def editar_entregador(request, id_entregador):
     entregador = get_object_or_404(Entregador, pk=id_entregador)
 
     if request.method == 'POST':
-        form = EntregadorForm(
-            request.POST,
-            instance=entregador
-        )
+        form = EntregadorForm(request.POST, instance=entregador)
 
         if form.is_valid():
             form.save()
-            messages.success(
-                request,
-                'Entregador atualizado com sucesso!'
-            )
+            messages.success(request, 'Entregador atualizado com sucesso!')
             return redirect('area_pizzaria')
     else:
         form = EntregadorForm(instance=entregador)
@@ -285,10 +292,6 @@ def editar_entregador(request, id_entregador):
     })
 
 
-# =====================================================
-# Listar Entregadores
-# =====================================================
-
 @login_required
 def listar_entregadores(request):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -296,46 +299,13 @@ def listar_entregadores(request):
 
     entregadores = Entregador.objects.all().order_by('nome')
 
-    return render(
-        request,
-        'entregadores/listar.html',
-        {'entregadores': entregadores}
-    )
+    return render(request, 'entregadores/listar.html', {
+        'entregadores': entregadores
+    })
+
 
 # =====================================================
-# VERIFICAÇÃO DE PERMISSÃO ADMINISTRATIVA
-# =====================================================
-
-def acesso_administrativo(user):
-    return user.is_superuser
-
-
-def usuario_tem_funcao(user, funcoes):
-    if not user.is_authenticated:
-        return False
-
-    # Administrador tem acesso a todas as funções.
-    if user.is_superuser:
-        return True
-
-    funcionario = Funcionario.objects.filter(
-        pk=user.pk
-    ).first()
-
-    if funcionario is None:
-        return False
-
-    return funcionario.funcao in funcoes
-
-
-def acesso_negado(request):
-    return render(
-        request,
-        'acesso_negado.html'
-    )
-
-# =====================================================
-# LISTAR CLIENTES
+# CLIENTES - GERENCIAMENTO
 # =====================================================
 
 @login_required
@@ -345,16 +315,10 @@ def listar_clientes(request):
 
     clientes = Cliente.objects.all()
 
-    return render(
-        request,
-        'clientes/listar.html',
-        {'clientes': clientes}
-    )
+    return render(request, 'clientes/listar.html', {
+        'clientes': clientes
+    })
 
-
-# =====================================================
-# CADASTRAR CLIENTE PELA PIZZARIA
-# =====================================================
 
 @login_required
 def cadastrar_cliente(request):
@@ -371,19 +335,11 @@ def cadastrar_cliente(request):
     else:
         form = ClienteForm()
 
-    return render(
-        request,
-        'clientes/formulario.html',
-        {
-            'form': form,
-            'titulo': 'Cadastrar cliente'
-        }
-    )
+    return render(request, 'clientes/formulario.html', {
+        'form': form,
+        'titulo': 'Cadastrar cliente'
+    })
 
-
-# =====================================================
-# EDITAR CLIENTE
-# =====================================================
 
 @login_required
 def editar_cliente(request, pk):
@@ -402,19 +358,11 @@ def editar_cliente(request, pk):
     else:
         form = ClienteForm(instance=cliente)
 
-    return render(
-        request,
-        'clientes/formulario.html',
-        {
-            'form': form,
-            'titulo': 'Editar cliente'
-        }
-    )
+    return render(request, 'clientes/formulario.html', {
+        'form': form,
+        'titulo': 'Editar cliente'
+    })
 
-
-# =====================================================
-# EXCLUIR CLIENTE
-# =====================================================
 
 @login_required
 def excluir_cliente(request, pk):
@@ -428,58 +376,61 @@ def excluir_cliente(request, pk):
         messages.success(request, 'Cliente excluído com sucesso!')
         return redirect('listar_clientes')
 
-    return render(
-        request,
-        'clientes/confirmar_exclusao.html',
-        {'cliente': cliente}
-    )
+    return render(request, 'clientes/confirmar_exclusao.html', {
+        'cliente': cliente
+    })
+
 
 # =====================================================
-# CONSULTAR PEDIDOS DO CLIENTE
+# PEDIDOS DO CLIENTE
 # =====================================================
 
 @login_required
 def meus_pedidos(request):
-    if not hasattr(request.user, 'cliente'):
-        return acesso_negado(request)
+    if request.user.is_superuser:
+        pedidos = Pedido.objects.select_related(
+            'cliente'
+        ).prefetch_related(
+            'itens__produto'
+        ).order_by('-data_hora')
+    else:
+        if not hasattr(request.user, 'cliente'):
+            return acesso_negado(request)
 
-    pedidos = Pedido.objects.filter(
-        cliente=request.user.cliente
-    ).order_by('-data_hora')
+        pedidos = Pedido.objects.filter(
+            cliente=request.user.cliente
+        ).order_by('-data_hora')
 
-    return render(
-        request,
-        'clientes/meus_pedidos.html',
-        {'pedidos': pedidos}
-    )
+    return render(request, 'clientes/meus_pedidos.html', {
+        'pedidos': pedidos
+    })
+
 
 # =====================================================
-# PRODUTOS DISPONÍVEIS PARA O CLIENTE
+# PRODUTOS DISPONÍVEIS PARA CLIENTES
 # =====================================================
 
 @login_required
 def produtos_disponiveis(request):
-    if not hasattr(request.user, 'cliente'):
+    if not request.user.is_superuser and not hasattr(request.user, 'cliente'):
         return acesso_negado(request)
 
     produtos = Produto.objects.filter(
         disponibilidade=True
     ).order_by('nome')
 
-    return render(
-        request,
-        'clientes/produtos.html',
-        {'produtos': produtos}
-    )
+    return render(request, 'clientes/produtos.html', {
+        'produtos': produtos
+    })
 
 
 # =====================================================
-# ADICIONAR PRODUTO AO CARRINHO
+# CARRINHO
 # =====================================================
 
 @login_required
 def adicionar_ao_carrinho(request, pk):
-    if not hasattr(request.user, 'cliente'):
+    if not request.user.is_superuser and not hasattr(request.user, 'cliente'):
         return acesso_negado(request)
 
     if request.method != 'POST':
@@ -513,19 +464,15 @@ def adicionar_ao_carrinho(request, pk):
     return redirect('produtos_disponiveis')
 
 
-# =====================================================
-# VISUALIZAR CARRINHO
-# =====================================================
-
 @login_required
 def visualizar_carrinho(request):
-    if not hasattr(request.user, 'cliente'):
+    if not request.user.is_superuser and not hasattr(request.user, 'cliente'):
         return acesso_negado(request)
 
     carrinho = request.session.get('carrinho', {})
 
     produtos = []
-    total = 0
+    total = Decimal('0')
 
     for produto_id, quantidade in carrinho.items():
         try:
@@ -546,14 +493,10 @@ def visualizar_carrinho(request):
 
         total += subtotal
 
-    return render(
-        request,
-        'clientes/carrinho.html',
-        {
-            'produtos': produtos,
-            'total': total
-        }
-    )
+    return render(request, 'clientes/carrinho.html', {
+        'produtos': produtos,
+        'total': total
+    })
 
 
 # =====================================================
@@ -562,7 +505,7 @@ def visualizar_carrinho(request):
 
 @login_required
 def confirmar_pedido(request):
-    if not hasattr(request.user, 'cliente'):
+    if not request.user.is_superuser and not hasattr(request.user, 'cliente'):
         return acesso_negado(request)
 
     carrinho = request.session.get('carrinho', {})
@@ -571,14 +514,32 @@ def confirmar_pedido(request):
         messages.warning(request, 'Seu carrinho está vazio.')
         return redirect('visualizar_carrinho')
 
+    # O administrador precisa selecionar um cliente válido.
+    cliente_pedido = None
+
+    if request.user.is_superuser:
+        cliente_id = request.POST.get('cliente') if request.method == 'POST' else None
+
+        if cliente_id:
+            cliente_pedido = get_object_or_404(Cliente, pk=cliente_id)
+    else:
+        cliente_pedido = request.user.cliente
+
     if request.method == 'POST':
         form = ConfirmarPedidoForm(request.POST)
 
         if form.is_valid():
+            if cliente_pedido is None:
+                messages.error(
+                    request,
+                    'Selecione um cliente para realizar o pedido.'
+                )
+                return redirect('visualizar_carrinho')
+
             try:
                 with transaction.atomic():
                     pedido = Pedido.objects.create(
-                        cliente=request.user.cliente,
+                        cliente=cliente_pedido,
                         tipo_entrega=form.cleaned_data['tipo_entrega'],
                         endereco_entrega=(
                             form.cleaned_data['endereco_entrega']
@@ -606,9 +567,7 @@ def confirmar_pedido(request):
                     Pagamento.objects.create(
                         pedido=pedido,
                         valor=pedido.preco_total,
-                        metodo_pagamento=form.cleaned_data[
-                            'metodo_pagamento'
-                        ],
+                        metodo_pagamento=form.cleaned_data['metodo_pagamento'],
                         status_pagamento='Pendente'
                     )
 
@@ -626,6 +585,9 @@ def confirmar_pedido(request):
                     f'Pedido #{pedido.id_pedido} realizado com sucesso!'
                 )
 
+                if request.user.is_superuser:
+                    return redirect('listar_pedidos')
+
                 return redirect('meus_pedidos')
 
             except Produto.DoesNotExist:
@@ -638,23 +600,21 @@ def confirmar_pedido(request):
     else:
         form = ConfirmarPedidoForm()
 
-    return render(
-        request,
-        'clientes/confirmar_pedido.html',
-        {'form': form}
-    )
+    contexto = {'form': form}
+
+    if request.user.is_superuser:
+        contexto['clientes'] = Cliente.objects.all().order_by('nome')
+
+    return render(request, 'clientes/confirmar_pedido.html', contexto)
+
 
 # =====================================================
 # LISTAR PEDIDOS PARA A PIZZARIA
 # =====================================================
 
-
 @login_required
 def listar_pedidos(request):
-    if not usuario_tem_funcao(
-        request.user,
-        ['Gerente', 'Atendente']
-    ):
+    if not usuario_tem_funcao(request.user, ['Gerente', 'Atendente']):
         return acesso_negado(request)
 
     pedidos = Pedido.objects.select_related(
@@ -664,27 +624,19 @@ def listar_pedidos(request):
     ).order_by('-data_hora')
 
     cozinheiros = Funcionario.objects.filter(
-        funcao__in=[
-            'Pizzaiolo',
-            'Auxiliar de Cozinha'
-        ]
+        funcao__in=['Pizzaiolo', 'Auxiliar de Cozinha']
     ).order_by('nome')
 
-    return render(
-        request,
-        'pedidos/listar.html',
-        {
-            'pedidos': pedidos,
-            'status_choices': Pedido.STATUS_CHOICES,
-            'cozinheiros': cozinheiros
-        }
-    )
+    return render(request, 'pedidos/listar.html', {
+        'pedidos': pedidos,
+        'status_choices': Pedido.STATUS_CHOICES,
+        'cozinheiros': cozinheiros
+    })
 
 
 # =====================================================
 # ATUALIZAR STATUS DO PEDIDO
 # =====================================================
-
 
 @login_required
 def atualizar_status_pedido(request, pk):
@@ -711,17 +663,13 @@ def atualizar_status_pedido(request, pk):
                 'Auxiliar de Cozinha'
             ]
         else:
-            funcoes_permitidas = [
-                'Gerente',
-                'Atendente'
-            ]
+            funcoes_permitidas = ['Gerente', 'Atendente']
 
         if not usuario_tem_funcao(request.user, funcoes_permitidas):
             return acesso_negado(request)
 
         try:
             with transaction.atomic():
-
                 pedido = Pedido.objects.select_for_update().get(pk=pk)
 
                 funcionario = Funcionario.objects.filter(
@@ -732,11 +680,9 @@ def atualizar_status_pedido(request, pk):
                     pedido=pedido
                 ).first()
 
-                # Identifica o cozinheiro responsável
                 funcionario_responsavel = None
 
-                if novo_status == 'Em preparação':
-
+                if novo_status in ['Em preparação', 'Concluído']:
                     funcionario_id = request.POST.get(
                         'funcionario_responsavel'
                     )
@@ -755,39 +701,32 @@ def atualizar_status_pedido(request, pk):
                         ]
                     )
 
-                    if processamento is not None:
+                    if novo_status == 'Em preparação' and processamento:
                         raise ValueError(
                             'Este pedido já possui um processamento registrado.'
                         )
 
-                # Baixa o estoque somente ao iniciar a preparação
                 if (
                     novo_status == 'Em preparação'
                     and not pedido.estoque_baixado
                 ):
                     quantidades_necessarias = {}
 
-                    itens = pedido.itens.select_related(
-                        'produto'
-                    ).all()
+                    itens = pedido.itens.select_related('produto').all()
 
                     if not itens.exists():
-                        raise ValueError(
-                            'O pedido não possui itens.'
-                        )
+                        raise ValueError('O pedido não possui itens.')
 
                     for item in itens:
                         receitas = Receita.objects.filter(
                             produto=item.produto
                         )
 
-                        # Produtos sem receita não exigem baixa de ingredientes
                         for receita in receitas:
                             ingrediente_id = receita.ingrediente_id
 
                             quantidade = (
-                                receita.quantidade_medida
-                                * item.quantidade
+                                receita.quantidade_medida * item.quantidade
                             )
 
                             quantidades_necessarias[ingrediente_id] = (
@@ -807,15 +746,12 @@ def atualizar_status_pedido(request, pk):
                     }
 
                     for ingrediente_id, quantidade in quantidades_necessarias.items():
-                        estoque = estoques_por_ingrediente.get(
-                            ingrediente_id
-                        )
+                        estoque = estoques_por_ingrediente.get(ingrediente_id)
 
                         if estoque is None:
                             ingrediente = Ingrediente.objects.get(
                                 pk=ingrediente_id
                             )
-
                             raise ValueError(
                                 f'Não existe estoque cadastrado para '
                                 f'"{ingrediente.nome}".'
@@ -834,39 +770,25 @@ def atualizar_status_pedido(request, pk):
                         estoque = estoques_por_ingrediente[ingrediente_id]
 
                         estoque.quantidade_estoque -= quantidade
-
-                        estoque.save(
-                            update_fields=[
-                                'quantidade_estoque',
-                                'data_atualizacao'
-                            ]
-                        )
+                        estoque.save(update_fields=[
+                            'quantidade_estoque',
+                            'data_atualizacao'
+                        ])
 
                         MovimentacaoEstoque.objects.create(
                             ingrediente=estoque.ingrediente,
                             tipo='saida',
                             quantidade=quantidade,
-                            descricao=(
-                                f'Consumo do pedido '
-                                f'#{pedido.id_pedido}'
-                            ),
+                            descricao=f'Consumo do pedido #{pedido.id_pedido}',
                             funcionario=funcionario
                         )
 
                     pedido.estoque_baixado = True
 
                 pedido.status = novo_status
+                pedido.save(update_fields=['status', 'estoque_baixado'])
 
-                pedido.save(
-                    update_fields=[
-                        'status',
-                        'estoque_baixado'
-                    ]
-                )
-
-                # Registra o cozinheiro responsável
                 if novo_status == 'Em preparação':
-
                     ProcessamentoPedido.objects.create(
                         pedido=pedido,
                         funcionario=funcionario_responsavel,
@@ -874,8 +796,21 @@ def atualizar_status_pedido(request, pk):
                         status_preparacao='Em preparação'
                     )
 
-                elif novo_status == 'Pronto':
+                elif novo_status == 'Concluído':
+                    if processamento is None:
+                        agora = timezone.now()
 
+                        ProcessamentoPedido.objects.create(
+                            pedido=pedido,
+                            funcionario=funcionario_responsavel,
+                            data_inicio=agora,
+                            data_fim=agora,
+                            status_preparacao='Finalizado'
+                        )
+                    else:
+                        processamento.atualizarStatus('Finalizado')
+
+                elif novo_status == 'Pronto':
                     if processamento:
                         processamento.atualizarStatus('Finalizado')
 
@@ -897,7 +832,7 @@ def atualizar_status_pedido(request, pk):
 
 
 # =====================================================
-# CONSULTAR PROCESSAMENTO DO PEDIDO
+# CONSULTAR PROCESSAMENTOS
 # =====================================================
 
 @login_required
@@ -913,11 +848,9 @@ def listar_processamentos(request):
         'funcionario'
     ).all().order_by('-data_inicio')
 
-    return render(
-        request,
-        'processamentos/listar_processamentos.html',
-        {'processamentos': processamentos}
-    )
+    return render(request, 'processamentos/listar_processamentos.html', {
+        'processamentos': processamentos
+    })
 
 
 # =====================================================
@@ -926,10 +859,7 @@ def listar_processamentos(request):
 
 @login_required
 def cancelar_pedido(request, pk):
-    if not usuario_tem_funcao(
-        request.user,
-        ['Gerente', 'Atendente']
-    ):
+    if not usuario_tem_funcao(request.user, ['Gerente', 'Atendente']):
         return acesso_negado(request)
 
     pedido = get_object_or_404(Pedido, pk=pk)
@@ -949,7 +879,6 @@ def cancelar_pedido(request, pk):
 
         else:
             pedido.cancelarPedido()
-
             messages.success(
                 request,
                 f'Pedido #{pedido.id_pedido} cancelado com sucesso!'
@@ -980,7 +909,7 @@ def listar_entregas(request):
 
 
 # =====================================================
-# ATRIBUIR ENTREGAS A ENTREGADORES
+# ATRIBUIR ENTREGADOR
 # =====================================================
 
 @login_required
@@ -1026,24 +955,36 @@ def atribuir_entregador(request, id_entrega):
 
 @login_required
 def atualizar_status_entrega(request, id_entrega):
-    if not hasattr(request.user, 'entregador'):
+    administrador = request.user.is_superuser
+    entregador_usuario = getattr(request.user, 'entregador', None)
+
+    # Entregadores só podem atualizar suas próprias entregas.
+    # Administradores podem atualizar qualquer entrega.
+    if not administrador and entregador_usuario is None:
         return acesso_negado(request)
 
     if request.method != 'POST':
+        if administrador:
+            return redirect('listar_entregas')
         return redirect('area_entregador')
 
-    entrega = get_object_or_404(
-        Entrega,
-        pk=id_entrega,
-        entregador=request.user.entregador
-    )
+    if administrador:
+        entrega = get_object_or_404(Entrega, pk=id_entrega)
+    else:
+        entrega = get_object_or_404(
+            Entrega,
+            pk=id_entrega,
+            entregador=entregador_usuario
+        )
 
     novo_status = request.POST.get('status')
 
     if novo_status == 'Saiu para entrega':
         if entrega.status_entrega != 'Pendente':
             messages.error(request, 'Status inválido.')
-            return redirect('area_entregador')
+            return redirect(
+                'listar_entregas' if administrador else 'area_entregador'
+            )
 
         entrega.status_entrega = 'Saiu para entrega'
         entrega.data_saida = timezone.now()
@@ -1052,25 +993,35 @@ def atualizar_status_entrega(request, id_entrega):
     elif novo_status == 'Entregue':
         if entrega.status_entrega != 'Saiu para entrega':
             messages.error(request, 'A entrega ainda não saiu.')
-            return redirect('area_entregador')
+            return redirect(
+                'listar_entregas' if administrador else 'area_entregador'
+            )
 
         entrega.status_entrega = 'Entregue'
         entrega.data_entrega = timezone.now()
-
         entrega.pedido.status = 'Concluído'
 
+        # Libera o entregador, caso exista um associado.
         entregador = entrega.entregador
-        entregador.disponibilidade = True
-        entregador.save(update_fields=['disponibilidade'])
+
+        if entregador:
+            entregador.disponibilidade = True
+            entregador.save(update_fields=['disponibilidade'])
 
     else:
         messages.error(request, 'Status inválido.')
-        return redirect('area_entregador')
+        return redirect(
+            'listar_entregas' if administrador else 'area_entregador'
+        )
 
     entrega.save()
     entrega.pedido.save(update_fields=['status'])
 
     messages.success(request, 'Status da entrega atualizado!')
+
+    if administrador:
+        return redirect('listar_entregas')
+
     return redirect('area_entregador')
 
 
@@ -1080,22 +1031,29 @@ def atualizar_status_entrega(request, id_entrega):
 
 @login_required
 def minhas_entregas(request):
-    if not hasattr(request.user, 'entregador'):
-        return acesso_negado(request)
+    if request.user.is_superuser:
+        entregas = Entrega.objects.all()
+    else:
+        if not hasattr(request.user, 'entregador'):
+            return acesso_negado(request)
 
-    entregas = Entrega.objects.filter(
-        entregador=request.user.entregador
-    ).select_related(
+        entregas = Entrega.objects.filter(
+            entregador=request.user.entregador
+        )
+
+    entregas = entregas.select_related(
         'pedido',
-        'pedido__cliente'
+        'pedido__cliente',
+        'entregador'
     ).order_by('-id_entrega')
 
     return render(request, 'entregadores/minhas_entregas.html', {
         'entregas': entregas
     })
 
+
 # =====================================================
-# CADASTRAR PRODUTO
+# PRODUTOS
 # =====================================================
 
 @login_required
@@ -1113,16 +1071,10 @@ def cadastrar_produto(request):
     else:
         form = ProdutoForm()
 
-    return render(
-        request,
-        'produtos/cadastrar.html',
-        {'form': form}
-    )
+    return render(request, 'produtos/cadastrar.html', {
+        'form': form
+    })
 
-
-# =====================================================
-# EDITAR PRODUTO
-# =====================================================
 
 @login_required
 def editar_produto(request, produto_id):
@@ -1141,19 +1093,11 @@ def editar_produto(request, produto_id):
     else:
         form = ProdutoForm(instance=produto)
 
-    return render(
-        request,
-        'produtos/editar.html',
-        {
-            'form': form,
-            'produto': produto
-        }
-    )
+    return render(request, 'produtos/editar.html', {
+        'form': form,
+        'produto': produto
+    })
 
-
-# =====================================================
-# EXCLUIR PRODUTO
-# =====================================================
 
 @login_required
 def excluir_produto(request, produto_id):
@@ -1167,16 +1111,10 @@ def excluir_produto(request, produto_id):
         messages.success(request, 'Produto excluído com sucesso!')
         return redirect('listar_produtos')
 
-    return render(
-        request,
-        'produtos/excluir.html',
-        {'produto': produto}
-    )
+    return render(request, 'produtos/excluir.html', {
+        'produto': produto
+    })
 
-
-# =====================================================
-# LISTAR PRODUTOS
-# =====================================================
 
 @login_required
 def listar_produtos(request):
@@ -1185,15 +1123,13 @@ def listar_produtos(request):
 
     produtos = Produto.objects.all().order_by('nome')
 
-    return render(
-        request,
-        'produtos/listar.html',
-        {'produtos': produtos}
-    )
+    return render(request, 'produtos/listar.html', {
+        'produtos': produtos
+    })
 
 
 # =====================================================
-# CADASTRAR INGREDIENTE
+# INGREDIENTES
 # =====================================================
 
 @login_required
@@ -1216,10 +1152,6 @@ def cadastrar_ingrediente(request):
     })
 
 
-# =====================================================
-# LISTAR INGREDIENTES
-# =====================================================
-
 @login_required
 def listar_ingredientes(request):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -1231,10 +1163,6 @@ def listar_ingredientes(request):
         'ingredientes': ingredientes
     })
 
-
-# =====================================================
-# EDITAR INGREDIENTE
-# =====================================================
 
 @login_required
 def editar_ingrediente(request, ingrediente_id):
@@ -1259,10 +1187,6 @@ def editar_ingrediente(request, ingrediente_id):
     })
 
 
-# =====================================================
-# EXCLUIR INGREDIENTE
-# =====================================================
-
 @login_required
 def excluir_ingrediente(request, ingrediente_id):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -1281,7 +1205,6 @@ def excluir_ingrediente(request, ingrediente_id):
             return redirect('listar_ingredientes')
 
         ingrediente.delete()
-
         messages.success(request, 'Ingrediente excluído com sucesso!')
         return redirect('listar_ingredientes')
 
@@ -1289,8 +1212,9 @@ def excluir_ingrediente(request, ingrediente_id):
         'ingrediente': ingrediente
     })
 
+
 # =====================================================
-# LISTAR ESTOQUE
+# ESTOQUE
 # =====================================================
 
 @login_required
@@ -1302,7 +1226,6 @@ def listar_estoque(request):
         'ingrediente'
     ).all().order_by('ingrediente__nome')
 
-    # Identifica os ingredientes com estoque baixo
     estoques_baixos = [
         estoque for estoque in estoques
         if estoque.verificarEstoque()
@@ -1310,13 +1233,9 @@ def listar_estoque(request):
 
     return render(request, 'estoque/listar_estoque.html', {
         'estoques': estoques,
-        'estoques_baixos': estoques_baixos,
+        'estoques_baixos': estoques_baixos
     })
 
-
-# =====================================================
-# CADASTRAR ESTOQUE
-# =====================================================
 
 @login_required
 def cadastrar_estoque(request):
@@ -1348,6 +1267,11 @@ def cadastrar_estoque(request):
                     if caixa is None:
                         raise ValueError(
                             'Não existe um caixa cadastrado para a pizzaria.'
+                        )
+
+                    if valor_pago > caixa.saldo_atual:
+                        raise ValueError(
+                            'Saldo insuficiente para realizar esta compra.'
                         )
 
                     estoque = Estoque.objects.select_for_update().filter(
@@ -1384,11 +1308,6 @@ def cadastrar_estoque(request):
                         descricao=f'Compra de estoque: {ingrediente.nome}',
                         valor=valor_pago,
                         funcionario=funcionario
-                        
-                    )
-                    if valor_pago > caixa.saldo_atual:
-                     raise ValueError(
-                    'Saldo insuficiente para realizar esta compra.'
                     )
 
                     caixa.saldo_atual -= valor_pago
@@ -1412,10 +1331,6 @@ def cadastrar_estoque(request):
         'form': form
     })
 
-
-# =====================================================
-# EDITAR ESTOQUE
-# =====================================================
 
 @login_required
 def editar_estoque(request, estoque_id):
@@ -1450,6 +1365,11 @@ def editar_estoque(request, estoque_id):
                             'Não existe um caixa cadastrado para a pizzaria.'
                         )
 
+                    if valor_pago > caixa.saldo_atual:
+                        raise ValueError(
+                            'Saldo insuficiente para realizar esta compra.'
+                        )
+
                     estoque = Estoque.objects.select_for_update().get(
                         pk=estoque_id
                     )
@@ -1478,17 +1398,10 @@ def editar_estoque(request, estoque_id):
                         caixa=caixa,
                         tipo='Saida',
                         origem='Compra',
-                        descricao=(
-                            f'Ajuste de estoque: '
-                            f'{estoque.ingrediente.nome}'
-                        ),
+                        descricao=f'Ajuste de estoque: {estoque.ingrediente.nome}',
                         valor=valor_pago,
                         funcionario=funcionario
                     )
-                    if valor_pago > caixa.saldo_atual:
-                     raise ValueError(
-                      'Saldo insuficiente para realizar esta compra.'
-                     )
 
                     caixa.saldo_atual -= valor_pago
                     caixa.save(update_fields=[
@@ -1513,10 +1426,6 @@ def editar_estoque(request, estoque_id):
     })
 
 
-# =====================================================
-# EXCLUIR ESTOQUE
-# =====================================================
-
 @login_required
 def excluir_estoque(request, estoque_id):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -1536,16 +1445,19 @@ def excluir_estoque(request, estoque_id):
         'estoque': estoque
     })
 
+
 # =====================================================
-# Listar Receitas
+# RECEITAS
 # =====================================================
+
 @login_required
 def listar_receitas(request):
     if not usuario_tem_funcao(request.user, ['Gerente']):
         return acesso_negado(request)
 
     receitas = Receita.objects.select_related(
-        'produto', 'ingrediente'
+        'produto',
+        'ingrediente'
     ).all().order_by('produto__nome')
 
     return render(request, 'receitas/listar.html', {
@@ -1553,9 +1465,6 @@ def listar_receitas(request):
     })
 
 
-# =====================================================
-# Cadastrar Receitas
-# =====================================================
 @login_required
 def cadastrar_receita(request):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -1587,32 +1496,27 @@ def cadastrar_receita(request):
                         defaults={
                             'unidade_medida': form.cleaned_data['unidade_medida'],
                             'quantidade_medida': form.cleaned_data['quantidade_medida'],
-                        },
+                        }
                     )
 
             messages.success(request, 'Receita cadastrada com sucesso!')
             return redirect('listar_receitas')
-
     else:
         formset = ReceitaFormSet()
 
     return render(request, 'receitas/cadastrar.html', {
         'produtos': produtos,
         'formset': formset,
-        'ingredientes_unidades': ingredientes_unidades,
+        'ingredientes_unidades': ingredientes_unidades
     })
 
 
-# =====================================================
-# Editar Receitas
-# =====================================================
 @login_required
 def editar_receita(request, produto_id):
     if not usuario_tem_funcao(request.user, ['Gerente']):
         return acesso_negado(request)
 
     from .forms import ReceitaFormSet
-    from django.db import transaction
 
     produto = get_object_or_404(Produto, pk=produto_id)
 
@@ -1657,7 +1561,7 @@ def editar_receita(request, produto_id):
             {
                 'ingrediente': receita.ingrediente,
                 'unidade_medida': receita.unidade_medida,
-                'quantidade_medida': receita.quantidade_medida,
+                'quantidade_medida': receita.quantidade_medida
             }
             for receita in receitas
         ]
@@ -1666,13 +1570,10 @@ def editar_receita(request, produto_id):
 
     return render(request, 'receitas/editar.html', {
         'formset': formset,
-        'produto': produto,
+        'produto': produto
     })
 
 
-# =====================================================
-# Excluir Receitas
-# =====================================================
 @login_required
 def excluir_receita(request, produto_id):
     if not usuario_tem_funcao(request.user, ['Gerente']):
@@ -1696,8 +1597,9 @@ def excluir_receita(request, produto_id):
 
 
 # =====================================================
-# Listar Pagamentos
+# PAGAMENTOS
 # =====================================================
+
 @login_required
 def listar_pagamentos(request):
     if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
@@ -1710,13 +1612,10 @@ def listar_pagamentos(request):
 
     return render(request, 'pagamentos/listar_pagamentos.html', {
         'pagamentos': pagamentos,
-        'status_choices': Pagamento.STATUS_CHOICES,
+        'status_choices': Pagamento.STATUS_CHOICES
     })
 
 
-# =====================================================
-# Atualizar Status do Pagamento
-# =====================================================
 @login_required
 def atualizar_status_pagamento(request, id_pagamento):
     if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
@@ -1752,9 +1651,11 @@ def atualizar_status_pagamento(request, id_pagamento):
 
     return redirect('listar_pagamentos')
 
+
 # =====================================================
-# Gerenciar Pizzaria
+# GERENCIAR PIZZARIA
 # =====================================================
+
 @login_required
 def gerenciar_pizzaria(request):
     if not acesso_administrativo(request.user):
@@ -1763,10 +1664,7 @@ def gerenciar_pizzaria(request):
     pizzaria = Pizzaria.objects.first()
 
     if request.method == 'POST':
-        form = PizzariaForm(
-            request.POST,
-            instance=pizzaria
-        )
+        form = PizzariaForm(request.POST, instance=pizzaria)
 
         if form.is_valid():
             form.save()
@@ -1776,31 +1674,25 @@ def gerenciar_pizzaria(request):
                 'Dados da pizzaria atualizados com sucesso!'
             )
             return redirect('gerenciar_pizzaria')
-
     else:
         form = PizzariaForm(instance=pizzaria)
 
-    return render(
-        request,
-        'pizzaria/gerenciar.html',
-        {
-            'form': form,
-            'pizzaria': pizzaria
-        }
-    )
+    return render(request, 'pizzaria/gerenciar.html', {
+        'form': form,
+        'pizzaria': pizzaria
+    })
 
 
 # =====================================================
-# Consultar Caixa da Pizzaria
+# CAIXA DA PIZZARIA
 # =====================================================
+
 @login_required
 def consultar_caixa(request):
     if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
         return acesso_negado(request)
 
-    caixa = CaixaPizzaria.objects.select_related(
-        'pizzaria'
-    ).first()
+    caixa = CaixaPizzaria.objects.select_related('pizzaria').first()
 
     movimentacoes = []
 
@@ -1811,19 +1703,12 @@ def consultar_caixa(request):
             .order_by('-data_movimentacao')
         )
 
-    return render(
-        request,
-        'caixa/consultar.html',
-        {
-            'caixa': caixa,
-            'movimentacoes': movimentacoes,
-        },
-    )
+    return render(request, 'caixa/consultar.html', {
+        'caixa': caixa,
+        'movimentacoes': movimentacoes
+    })
 
 
-# =====================================================
-# Registrar Movimentação do Caixa
-# =====================================================
 @login_required
 def registrar_movimentacao_caixa(request):
     if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
@@ -1848,11 +1733,9 @@ def registrar_movimentacao_caixa(request):
                     movimentacao = form.save(commit=False)
                     movimentacao.caixa = caixa
                     movimentacao.origem = 'Manual'
-                    movimentacao.funcionario = (
-                        Funcionario.objects.filter(
-                            pk=request.user.pk
-                        ).first()
-                    )
+                    movimentacao.funcionario = Funcionario.objects.filter(
+                        pk=request.user.pk
+                    ).first()
 
                     if movimentacao.tipo == 'Saida':
                         if movimentacao.valor > caixa.saldo_atual:
@@ -1861,7 +1744,6 @@ def registrar_movimentacao_caixa(request):
                             )
 
                         caixa.saldo_atual -= movimentacao.valor
-
                     else:
                         caixa.saldo_atual += movimentacao.valor
 
@@ -1884,8 +1766,6 @@ def registrar_movimentacao_caixa(request):
     else:
         form = MovimentacaoCaixaForm()
 
-    return render(
-        request,
-        'caixa/registrar_movimentacao.html',
-        {'form': form}
-    )
+    return render(request, 'caixa/registrar_movimentacao.html', {
+        'form': form
+    })

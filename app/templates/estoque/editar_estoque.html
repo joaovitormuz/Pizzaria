@@ -10,6 +10,11 @@
         <div class="card-body">
 
             <h2>Editar Estoque</h2>
+            <div class="alert alert-info mt-3">
+             <strong>Atenção:</strong> Se a edição não representar uma compra,
+                informe 0 no campo Valor Pago. Assim, o estoque será atualizado
+                  sem descontar dinheiro do caixa.
+             </div>
 
             <p>
                 Ingrediente: <strong>{{ estoque.ingrediente.nome }}</strong>

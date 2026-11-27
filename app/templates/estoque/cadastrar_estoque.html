@@ -1,24 +1,29 @@
+
 {% extends 'base.html' %}
 
 {% block content %}
 <div class="container mt-4">
 
-    <h2>Cadastrar Estoque</h2>
+    <h2 class="mb-3">Cadastrar Estoque</h2>
 
-    <div class="card shadow-sm mt-3">
+    <div class="card shadow-sm">
         <div class="card-body">
 
             <form method="POST">
                 {% csrf_token %}
+
                 {{ form.as_p }}
 
-                <button type="submit" class="btn btn-primary">
-                    Cadastrar
-                </button>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        Registrar Compra
+                    </button>
 
-                <a href="{% url 'listar_estoque' %}" class="btn btn-secondary">
-                    Voltar
-                </a>
+                    <a href="{% url 'listar_estoque' %}"
+                       class="btn btn-secondary">
+                        Voltar
+                    </a>
+                </div>
             </form>
 
         </div>

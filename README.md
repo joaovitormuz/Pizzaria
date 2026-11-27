@@ -54,3 +54,5 @@
 
 # Melhorias Graficas: HTML
 
+# Integrando estoque ao fluxo de caixa , edição manual do caixa 
+

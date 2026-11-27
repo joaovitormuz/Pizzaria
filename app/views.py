@@ -24,7 +24,8 @@ from .forms import (
     IngredienteForm,
     EstoqueForm,
     ReceitaForm,
-    ProdutoForm
+    ProdutoForm,
+    MovimentacaoCaixaForm
 )
 
 from .models import (
@@ -1177,6 +1178,7 @@ def listar_estoque(request):
 # =====================================================
 # Cadastrar Estoque
 # =====================================================
+
 @login_required
 def cadastrar_estoque(request):
     if not acesso_administrativo(request.user):
@@ -1186,9 +1188,82 @@ def cadastrar_estoque(request):
         form = EstoqueForm(request.POST)
 
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Estoque cadastrado com sucesso!')
-            return redirect('listar_estoque')
+            try:
+                with transaction.atomic():
+                    ingrediente = form.cleaned_data['ingrediente']
+                    quantidade = form.cleaned_data['quantidade_estoque']
+                    valor_pago = form.cleaned_data['valor_pago']
+
+                    if quantidade <= 0:
+                        raise ValueError(
+                            'A quantidade adquirida deve ser maior que zero.'
+                        )
+
+                    if valor_pago <= 0:
+                        raise ValueError(
+                            'O valor pago deve ser maior que zero.'
+                        )
+
+                    caixa = CaixaPizzaria.objects.select_for_update().first()
+
+                    if caixa is None:
+                        raise ValueError(
+                            'Não existe um caixa cadastrado para a pizzaria.'
+                        )
+
+                    estoque = Estoque.objects.select_for_update().filter(
+                        ingrediente=ingrediente
+                    ).first()
+
+                    if estoque:
+                        estoque.quantidade_estoque += quantidade
+                        estoque.quantidade_minima = (
+                            form.cleaned_data['quantidade_minima']
+                        )
+                        estoque.save()
+                    else:
+                        estoque = form.save(commit=False)
+                        estoque.save()
+
+                    funcionario = Funcionario.objects.filter(
+                        pk=request.user.pk
+                    ).first()
+
+                    MovimentacaoEstoque.objects.create(
+                        ingrediente=ingrediente,
+                        tipo='entrada',
+                        quantidade=quantidade,
+                        valor_pago=valor_pago,
+                        descricao='Compra e reposição de estoque.',
+                        funcionario=funcionario
+                    )
+
+                    MovimentacaoCaixa.objects.create(
+                        caixa=caixa,
+                        tipo='Saida',
+                        origem='Compra',
+                        descricao=(
+                            f'Compra de estoque: {ingrediente.nome}'
+                        ),
+                        valor=valor_pago,
+                        funcionario=funcionario
+                    )
+
+                    caixa.saldo_atual -= valor_pago
+                    caixa.save(update_fields=[
+                        'saldo_atual',
+                        'data_atualizacao'
+                    ])
+
+                messages.success(
+                    request,
+                    'Estoque atualizado e compra registrada no caixa!'
+                )
+                return redirect('listar_estoque')
+
+            except ValueError as erro:
+                messages.error(request, str(erro))
+
     else:
         form = EstoqueForm()
 
@@ -1197,8 +1272,9 @@ def cadastrar_estoque(request):
     })
 
 # =====================================================
-# Cadastrar Estoque
+# Editar Estoque
 # =====================================================
+
 @login_required
 def editar_estoque(request, estoque_id):
     if not acesso_administrativo(request.user):
@@ -1210,9 +1286,79 @@ def editar_estoque(request, estoque_id):
         form = EstoqueForm(request.POST, instance=estoque)
 
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Estoque atualizado com sucesso!')
-            return redirect('listar_estoque')
+            try:
+                with transaction.atomic():
+                    valor_pago = form.cleaned_data['valor_pago']
+                    quantidade_nova = form.cleaned_data['quantidade_estoque']
+
+                    if quantidade_nova < 0:
+                        raise ValueError(
+                            'A quantidade não pode ser negativa.'
+                        )
+
+                    if valor_pago < 0:
+                        raise ValueError(
+                            'O valor pago não pode ser negativo.'
+                        )
+
+                    caixa = CaixaPizzaria.objects.select_for_update().first()
+
+                    if caixa is None:
+                        raise ValueError(
+                            'Não existe um caixa cadastrado para a pizzaria.'
+                        )
+
+                    estoque = Estoque.objects.select_for_update().get(
+                        pk=estoque_id
+                    )
+
+                    estoque.ingrediente = form.cleaned_data['ingrediente']
+                    estoque.quantidade_estoque = quantidade_nova
+                    estoque.quantidade_minima = (
+                        form.cleaned_data['quantidade_minima']
+                    )
+                    estoque.save()
+
+                    funcionario = Funcionario.objects.filter(
+                        pk=request.user.pk
+                    ).first()
+
+                    MovimentacaoEstoque.objects.create(
+                        ingrediente=estoque.ingrediente,
+                        tipo='ajuste',
+                        quantidade=quantidade_nova,
+                        valor_pago=valor_pago,
+                        descricao='Ajuste de estoque com registro de compra.',
+                        funcionario=funcionario
+                    )
+
+                    MovimentacaoCaixa.objects.create(
+                        caixa=caixa,
+                        tipo='Saida',
+                        origem='Compra',
+                        descricao=(
+                            f'Ajuste de estoque: '
+                            f'{estoque.ingrediente.nome}'
+                        ),
+                        valor=valor_pago,
+                        funcionario=funcionario
+                    )
+
+                    caixa.saldo_atual -= valor_pago
+                    caixa.save(update_fields=[
+                        'saldo_atual',
+                        'data_atualizacao'
+                    ])
+
+                messages.success(
+                    request,
+                    'Estoque atualizado e compra registrada no caixa!'
+                )
+                return redirect('listar_estoque')
+
+            except ValueError as erro:
+                messages.error(request, str(erro))
+
     else:
         form = EstoqueForm(instance=estoque)
 
@@ -1220,6 +1366,7 @@ def editar_estoque(request, estoque_id):
         'form': form,
         'estoque': estoque
     })
+
 
 
 # =====================================================
@@ -1486,4 +1633,75 @@ def consultar_caixa(request):
             'caixa': caixa,
             'movimentacoes': movimentacoes,
         }
+    )
+
+
+# =====================================================
+# Registrar Movimentação Caixa
+# =====================================================
+
+@login_required
+def registrar_movimentacao_caixa(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    caixa = CaixaPizzaria.objects.first()
+
+    if caixa is None:
+        messages.error(request, 'Não existe um caixa cadastrado.')
+        return redirect('consultar_caixa')
+
+    if request.method == 'POST':
+        form = MovimentacaoCaixaForm(request.POST)
+
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    caixa = CaixaPizzaria.objects.select_for_update().get(
+                        pk=caixa.pk
+                    )
+
+                    movimentacao = form.save(commit=False)
+                    movimentacao.caixa = caixa
+                    movimentacao.origem = 'Manual'
+                    movimentacao.funcionario = (
+                        Funcionario.objects.filter(
+                            pk=request.user.pk
+                        ).first()
+                    )
+
+                    if movimentacao.tipo == 'Saida':
+                        if movimentacao.valor > caixa.saldo_atual:
+                            raise ValueError(
+                                'Saldo insuficiente para esta retirada.'
+                            )
+
+                        caixa.saldo_atual -= movimentacao.valor
+
+                    else:
+                        caixa.saldo_atual += movimentacao.valor
+
+                    movimentacao.save()
+
+                    caixa.save(update_fields=[
+                        'saldo_atual',
+                        'data_atualizacao'
+                    ])
+
+                messages.success(
+                    request,
+                    'Movimentação registrada com sucesso!'
+                )
+                return redirect('consultar_caixa')
+
+            except ValueError as erro:
+                messages.error(request, str(erro))
+
+    else:
+        form = MovimentacaoCaixaForm()
+
+    return render(
+        request,
+        'caixa/registrar_movimentacao.html',
+        {'form': form}
     )

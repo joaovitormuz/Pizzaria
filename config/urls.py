@@ -249,5 +249,10 @@ urlpatterns = [
     views.consultar_caixa,
     name='consultar_caixa'
     ),
+    path(
+    'caixa/movimentacao/',
+    views.registrar_movimentacao_caixa,
+    name='registrar_movimentacao_caixa'
+    ),
     
 ]

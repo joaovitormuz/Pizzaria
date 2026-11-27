@@ -15,6 +15,10 @@
                 </h2>
                 <p class="mb-0">
                     Pizzaria: {{ caixa.pizzaria.nome }}
+                    <a href="{% url 'registrar_movimentacao_caixa' %}"
+                    class="btn btn-danger">
+                    Registrar Movimentação
+                   </a>
                 </p>
             </div>
         </div>

@@ -4,7 +4,7 @@ from django.forms import BaseFormSet, formset_factory
 from django.core.exceptions import ValidationError
 from .models import (
     Cliente, Funcionario, Entregador,
-    Ingrediente, Estoque, Receita, Produto
+    Ingrediente, Estoque, Receita, Produto, MovimentacaoCaixa
 )
 
 
@@ -218,7 +218,21 @@ class IngredienteForm(forms.ModelForm):
             'unidade_medida': 'Unidade de medida'
         }
 
+
 class EstoqueForm(forms.ModelForm):
+    valor_pago = forms.DecimalField(
+        label='Valor Pago (R$)',
+        max_digits=12,
+        decimal_places=2,
+        min_value=0,
+        required=True,
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0.01',
+            'placeholder': 'Valor total da compra'
+        })
+    )
+
     class Meta:
         model = Estoque
         fields = [
@@ -227,22 +241,6 @@ class EstoqueForm(forms.ModelForm):
             'quantidade_minima'
         ]
 
-        labels = {
-            'ingrediente': 'Ingrediente',
-            'quantidade_estoque': 'Quantidade disponível',
-            'quantidade_minima': 'Quantidade mínima'
-        }
-
-        widgets = {
-            'quantidade_estoque': forms.NumberInput(attrs={
-                'step': '0.001',
-                'min': '0'
-            }),
-            'quantidade_minima': forms.NumberInput(attrs={
-                'step': '0.001',
-                'min': '0'
-            })
-        }        
 
 class ReceitaForm(forms.ModelForm):
 
@@ -342,3 +340,46 @@ ReceitaFormSet = formset_factory(
     min_num=1,
     validate_min=True,
 )
+
+
+class MovimentacaoCaixaForm(forms.ModelForm):
+    class Meta:
+        model = MovimentacaoCaixa
+        fields = [
+            'tipo',
+            'descricao',
+            'valor'
+        ]
+
+        labels = {
+            'tipo': 'Tipo de movimentação',
+            'descricao': 'Descrição',
+            'valor': 'Valor (R$)'
+        }
+
+        widgets = {
+            'tipo': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'descricao': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Descreva a movimentação'
+            }),
+            'valor': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': '0,00'
+            })
+        }
+
+    def clean_valor(self):
+        valor = self.cleaned_data['valor']
+
+        if valor <= 0:
+            raise forms.ValidationError(
+                'O valor deve ser maior que zero.'
+            )
+
+        return valor
+

@@ -355,6 +355,13 @@ class MovimentacaoEstoque(models.Model):
         decimal_places=3,
         validators=[MinValueValidator(0.001)]
     )
+    valor_pago = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text='Valor total pago pela compra.'
+    )
 
     data_hora = models.DateTimeField(auto_now_add=True)
 

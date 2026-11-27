@@ -1,34 +1,13 @@
 
+from decimal import Decimal
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.http import HttpResponseForbidden
 from django.utils import timezone
-
-from decimal import Decimal
 from django.db import transaction
-from django.db.models import Sum
-from .models import Cliente, Pedido, Produto, ItemPedido
-from .forms import (
-    ClienteForm,
-    AdicionarProdutoForm,
-    ConfirmarPedidoForm,
-    PizzariaForm
-)
-from .models import Cliente, Pedido, Produto, ItemPedido, Funcionario
-from .forms import (
-    ClienteForm,
-    AdicionarProdutoForm,
-    ConfirmarPedidoForm,
-    FuncionarioForm,
-    EntregadorForm,
-    IngredienteForm,
-    EstoqueForm,
-    ReceitaForm,
-    ProdutoForm,
-    MovimentacaoCaixaForm,
-    Pizzaria
-)
 
 from .models import (
     Cliente,
@@ -45,14 +24,25 @@ from .models import (
     Pagamento,
     ProcessamentoPedido,
     CaixaPizzaria,
-    MovimentacaoCaixa
+    MovimentacaoCaixa,
+    Pizzaria,
 )
 
+from .forms import (
+    ClienteForm,
+    AdicionarProdutoForm,
+    ConfirmarPedidoForm,
+    FuncionarioForm,
+    EntregadorForm,
+    IngredienteForm,
+    EstoqueForm,
+    ReceitaForm,
+    ProdutoForm,
+    MovimentacaoCaixaForm,
+    PizzariaForm,
+)
 
 # Direcionamento por tipo de usuario
-
-
-from django.contrib.auth.views import LoginView
 
 class LoginPerfilView(LoginView):
     template_name = 'usuarios/login.html'
@@ -62,7 +52,7 @@ class LoginPerfilView(LoginView):
         usuario = self.request.user
 
         if usuario.is_superuser:
-            return '/visao-geral/'
+            return '/home/'
 
         if hasattr(usuario, 'entregador'):
             return '/entregador/'
@@ -174,8 +164,8 @@ def cadastro_publico_cliente(request):
 
 @login_required
 def cadastrar_funcionario(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     if request.method == 'POST':
         form = FuncionarioForm(request.POST)
@@ -192,13 +182,56 @@ def cadastrar_funcionario(request):
         'titulo': 'Cadastrar Funcionário'
     })
 
+
+# =====================================================
+# Editar Funcionario
+# =====================================================
+
+@login_required
+def editar_funcionario(request, id_funcionario):
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
+
+    funcionario = get_object_or_404(Funcionario, pk=id_funcionario)
+
+    if request.method == 'POST':
+        form = FuncionarioForm(request.POST, instance=funcionario)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Funcionário atualizado com sucesso!')
+            return redirect('area_pizzaria')
+    else:
+        form = FuncionarioForm(instance=funcionario)
+
+    return render(request, 'funcionarios/formulario.html', {
+        'form': form,
+        'titulo': 'Editar Funcionário'
+    })
+
+
+# =====================================================
+# Listar Funcionarios
+# =====================================================
+
+@login_required
+def listar_funcionarios(request):
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
+
+    funcionarios = Funcionario.objects.all().order_by('nome')
+
+    return render(request, 'funcionarios/listar.html', {
+        'funcionarios': funcionarios
+    })
 # =====================================================
 # Cadastro Entregador
 # =====================================================
+
 @login_required
 def cadastrar_entregador(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     if request.method == 'POST':
         form = EntregadorForm(request.POST)
@@ -220,12 +253,86 @@ def cadastrar_entregador(request):
 
 
 # =====================================================
+# Editar Entregador
+# =====================================================
+
+@login_required
+def editar_entregador(request, id_entregador):
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
+
+    entregador = get_object_or_404(Entregador, pk=id_entregador)
+
+    if request.method == 'POST':
+        form = EntregadorForm(
+            request.POST,
+            instance=entregador
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'Entregador atualizado com sucesso!'
+            )
+            return redirect('area_pizzaria')
+    else:
+        form = EntregadorForm(instance=entregador)
+
+    return render(request, 'entregadores/formulario.html', {
+        'form': form,
+        'titulo': 'Editar Entregador'
+    })
+
+
+# =====================================================
+# Listar Entregadores
+# =====================================================
+
+@login_required
+def listar_entregadores(request):
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
+
+    entregadores = Entregador.objects.all().order_by('nome')
+
+    return render(
+        request,
+        'entregadores/listar.html',
+        {'entregadores': entregadores}
+    )
+
+# =====================================================
 # VERIFICAÇÃO DE PERMISSÃO ADMINISTRATIVA
 # =====================================================
 
 def acesso_administrativo(user):
-    return user.is_staff or user.is_superuser
+    return user.is_superuser
 
+
+def usuario_tem_funcao(user, funcoes):
+    if not user.is_authenticated:
+        return False
+
+    # Administrador tem acesso a todas as funções.
+    if user.is_superuser:
+        return True
+
+    funcionario = Funcionario.objects.filter(
+        pk=user.pk
+    ).first()
+
+    if funcionario is None:
+        return False
+
+    return funcionario.funcao in funcoes
+
+
+def acesso_negado(request):
+    return render(
+        request,
+        'acesso_negado.html'
+    )
 
 # =====================================================
 # LISTAR CLIENTES
@@ -233,10 +340,8 @@ def acesso_administrativo(user):
 
 @login_required
 def listar_clientes(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para acessar esta página.'
-        )
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     clientes = Cliente.objects.all()
 
@@ -253,10 +358,8 @@ def listar_clientes(request):
 
 @login_required
 def cadastrar_cliente(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para cadastrar clientes.'
-        )
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     if request.method == 'POST':
         form = ClienteForm(request.POST)
@@ -284,10 +387,8 @@ def cadastrar_cliente(request):
 
 @login_required
 def editar_cliente(request, pk):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para editar clientes.'
-        )
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     cliente = get_object_or_404(Cliente, pk=pk)
 
@@ -317,10 +418,8 @@ def editar_cliente(request, pk):
 
 @login_required
 def excluir_cliente(request, pk):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para excluir clientes.'
-        )
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     cliente = get_object_or_404(Cliente, pk=pk)
 
@@ -342,9 +441,7 @@ def excluir_cliente(request, pk):
 @login_required
 def meus_pedidos(request):
     if not hasattr(request.user, 'cliente'):
-        return HttpResponseForbidden(
-            'Esta funcionalidade é exclusiva para clientes.'
-        )
+        return acesso_negado(request)
 
     pedidos = Pedido.objects.filter(
         cliente=request.user.cliente
@@ -363,9 +460,7 @@ def meus_pedidos(request):
 @login_required
 def produtos_disponiveis(request):
     if not hasattr(request.user, 'cliente'):
-        return HttpResponseForbidden(
-            'Esta funcionalidade é exclusiva para clientes.'
-        )
+        return acesso_negado(request)
 
     produtos = Produto.objects.filter(
         disponibilidade=True
@@ -376,6 +471,8 @@ def produtos_disponiveis(request):
         'clientes/produtos.html',
         {'produtos': produtos}
     )
+
+
 # =====================================================
 # ADICIONAR PRODUTO AO CARRINHO
 # =====================================================
@@ -383,9 +480,7 @@ def produtos_disponiveis(request):
 @login_required
 def adicionar_ao_carrinho(request, pk):
     if not hasattr(request.user, 'cliente'):
-        return HttpResponseForbidden(
-            'Esta funcionalidade é exclusiva para clientes.'
-        )
+        return acesso_negado(request)
 
     if request.method != 'POST':
         return redirect('produtos_disponiveis')
@@ -402,7 +497,6 @@ def adicionar_ao_carrinho(request, pk):
         quantidade = form.cleaned_data['quantidade']
 
         carrinho = request.session.get('carrinho', {})
-
         produto_id = str(produto.pk)
 
         carrinho[produto_id] = (
@@ -418,16 +512,15 @@ def adicionar_ao_carrinho(request, pk):
 
     return redirect('produtos_disponiveis')
 
- # =====================================================
+
+# =====================================================
 # VISUALIZAR CARRINHO
 # =====================================================
 
 @login_required
 def visualizar_carrinho(request):
     if not hasattr(request.user, 'cliente'):
-        return HttpResponseForbidden(
-            'Esta funcionalidade é exclusiva para clientes.'
-        )
+        return acesso_negado(request)
 
     carrinho = request.session.get('carrinho', {})
 
@@ -462,17 +555,15 @@ def visualizar_carrinho(request):
         }
     )
 
+
 # =====================================================
 # CONFIRMAR PEDIDO
 # =====================================================
 
-
 @login_required
 def confirmar_pedido(request):
     if not hasattr(request.user, 'cliente'):
-        return HttpResponseForbidden(
-            'Esta funcionalidade é exclusiva para clientes.'
-        )
+        return acesso_negado(request)
 
     carrinho = request.session.get('carrinho', {})
 
@@ -553,17 +644,18 @@ def confirmar_pedido(request):
         {'form': form}
     )
 
-
 # =====================================================
 # LISTAR PEDIDOS PARA A PIZZARIA
 # =====================================================
 
+
 @login_required
 def listar_pedidos(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para visualizar os pedidos.'
-        )
+    if not usuario_tem_funcao(
+        request.user,
+        ['Gerente', 'Atendente']
+    ):
+        return acesso_negado(request)
 
     pedidos = Pedido.objects.select_related(
         'cliente'
@@ -571,26 +663,36 @@ def listar_pedidos(request):
         'itens__produto'
     ).order_by('-data_hora')
 
+    cozinheiros = Funcionario.objects.filter(
+        funcao__in=[
+            'Pizzaiolo',
+            'Auxiliar de Cozinha'
+        ]
+    ).order_by('nome')
+
     return render(
-    request,
-    'pedidos/listar.html',
-    {
-        'pedidos': pedidos,
-        'status_choices': Pedido.STATUS_CHOICES
-    }
+        request,
+        'pedidos/listar.html',
+        {
+            'pedidos': pedidos,
+            'status_choices': Pedido.STATUS_CHOICES,
+            'cozinheiros': cozinheiros
+        }
     )
-    
+
 
 # =====================================================
 # ATUALIZAR STATUS DO PEDIDO
 # =====================================================
 
+
 @login_required
 def atualizar_status_pedido(request, pk):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para atualizar pedidos.'
-        )
+    if not usuario_tem_funcao(
+        request.user,
+        ['Gerente', 'Atendente', 'Pizzaiolo', 'Auxiliar de Cozinha']
+    ):
+        return acesso_negado(request)
 
     pedido = get_object_or_404(Pedido, pk=pk)
 
@@ -602,13 +704,61 @@ def atualizar_status_pedido(request, pk):
             messages.error(request, 'Status inválido.')
             return redirect('listar_pedidos')
 
+        if novo_status in ['Em preparação', 'Pronto']:
+            funcoes_permitidas = [
+                'Gerente',
+                'Pizzaiolo',
+                'Auxiliar de Cozinha'
+            ]
+        else:
+            funcoes_permitidas = [
+                'Gerente',
+                'Atendente'
+            ]
+
+        if not usuario_tem_funcao(request.user, funcoes_permitidas):
+            return acesso_negado(request)
+
         try:
             with transaction.atomic():
 
-                # Bloqueia o pedido durante a operação
-                pedido = Pedido.objects.select_for_update().get(
-                    pk=pk
-                )
+                pedido = Pedido.objects.select_for_update().get(pk=pk)
+
+                funcionario = Funcionario.objects.filter(
+                    pk=request.user.pk
+                ).first()
+
+                processamento = ProcessamentoPedido.objects.filter(
+                    pedido=pedido
+                ).first()
+
+                # Identifica o cozinheiro responsável
+                funcionario_responsavel = None
+
+                if novo_status == 'Em preparação':
+
+                    funcionario_id = request.POST.get(
+                        'funcionario_responsavel'
+                    )
+
+                    if not funcionario_id:
+                        raise ValueError(
+                            'Selecione o cozinheiro responsável pelo pedido.'
+                        )
+
+                    funcionario_responsavel = get_object_or_404(
+                        Funcionario,
+                        pk=funcionario_id,
+                        funcao__in=[
+                            'Pizzaiolo',
+                            'Auxiliar de Cozinha'
+                        ]
+                    )
+
+                    if processamento is not None:
+                        raise ValueError(
+                            'Este pedido já possui um processamento registrado.'
+                        )
 
                 # Baixa o estoque somente ao iniciar a preparação
                 if (
@@ -626,18 +776,12 @@ def atualizar_status_pedido(request, pk):
                             'O pedido não possui itens.'
                         )
 
-                    # Calcula os ingredientes necessários
                     for item in itens:
                         receitas = Receita.objects.filter(
                             produto=item.produto
                         )
 
-                        if not receitas.exists():
-                            raise ValueError(
-                                f'O produto "{item.produto.nome}" '
-                                'não possui receita cadastrada.'
-                            )
-
+                        # Produtos sem receita não exigem baixa de ingredientes
                         for receita in receitas:
                             ingrediente_id = receita.ingrediente_id
 
@@ -653,7 +797,6 @@ def atualizar_status_pedido(request, pk):
                                 ) + quantidade
                             )
 
-                    # Bloqueia os registros de estoque
                     estoques = Estoque.objects.select_for_update().filter(
                         ingrediente_id__in=quantidades_necessarias.keys()
                     )
@@ -663,9 +806,7 @@ def atualizar_status_pedido(request, pk):
                         for estoque in estoques
                     }
 
-                    # Verifica todos os ingredientes antes da baixa
                     for ingrediente_id, quantidade in quantidades_necessarias.items():
-
                         estoque = estoques_por_ingrediente.get(
                             ingrediente_id
                         )
@@ -689,9 +830,7 @@ def atualizar_status_pedido(request, pk):
                                 f'Disponível: {estoque.quantidade_estoque}.'
                             )
 
-                    # Realiza a baixa dos ingredientes
                     for ingrediente_id, quantidade in quantidades_necessarias.items():
-
                         estoque = estoques_por_ingrediente[ingrediente_id]
 
                         estoque.quantidade_estoque -= quantidade
@@ -703,7 +842,6 @@ def atualizar_status_pedido(request, pk):
                             ]
                         )
 
-                        # Registra cada saída de estoque
                         MovimentacaoEstoque.objects.create(
                             ingrediente=estoque.ingrediente,
                             tipo='saida',
@@ -712,16 +850,11 @@ def atualizar_status_pedido(request, pk):
                                 f'Consumo do pedido '
                                 f'#{pedido.id_pedido}'
                             ),
-                            funcionario=(
-                                request.user
-                                if isinstance(request.user, Funcionario)
-                                else None
-                            )
+                            funcionario=funcionario
                         )
 
                     pedido.estoque_baixado = True
 
-                # Atualiza o status do pedido
                 pedido.status = novo_status
 
                 pedido.save(
@@ -731,45 +864,20 @@ def atualizar_status_pedido(request, pk):
                     ]
                 )
 
-                # Gerencia o processamento do pedido
+                # Registra o cozinheiro responsável
                 if novo_status == 'Em preparação':
 
-                    funcionario = Funcionario.objects.filter(
-                        pk=request.user.pk
-                    ).first()
-
-                    if funcionario is None:
-                        raise ValueError(
-                            'O usuário responsável precisa estar '
-                            'cadastrado como funcionário.'
-                        )
-
-                    processamento = ProcessamentoPedido.objects.filter(
-                        pedido=pedido
-                    ).first()
-
-                    if processamento is None:
-                        ProcessamentoPedido.objects.create(
-                            pedido=pedido,
-                            funcionario=funcionario,
-                            data_inicio=timezone.now(),
-                            status_preparacao='Em preparação'
-                        )
-                    else:
-                        processamento.atualizarStatus(
-                            'Em preparação'
-                        )
+                    ProcessamentoPedido.objects.create(
+                        pedido=pedido,
+                        funcionario=funcionario_responsavel,
+                        data_inicio=timezone.now(),
+                        status_preparacao='Em preparação'
+                    )
 
                 elif novo_status == 'Pronto':
 
-                    processamento = ProcessamentoPedido.objects.filter(
-                        pedido=pedido
-                    ).first()
-
                     if processamento:
-                        processamento.atualizarStatus(
-                            'Finalizado'
-                        )
+                        processamento.atualizarStatus('Finalizado')
 
             messages.success(
                 request,
@@ -779,16 +887,26 @@ def atualizar_status_pedido(request, pk):
         except ValueError as erro:
             messages.error(request, str(erro))
 
+        except Funcionario.DoesNotExist:
+            messages.error(
+                request,
+                'O cozinheiro selecionado não foi encontrado.'
+            )
+
     return redirect('listar_pedidos')
 
 
 # =====================================================
-# Consultar Processamento do Pedido
+# CONSULTAR PROCESSAMENTO DO PEDIDO
 # =====================================================
+
 @login_required
 def listar_processamentos(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(
+        request.user,
+        ['Gerente', 'Pizzaiolo', 'Auxiliar de Cozinha']
+    ):
+        return acesso_negado(request)
 
     processamentos = ProcessamentoPedido.objects.select_related(
         'pedido',
@@ -800,16 +918,19 @@ def listar_processamentos(request):
         'processamentos/listar_processamentos.html',
         {'processamentos': processamentos}
     )
+
+
 # =====================================================
 # CANCELAR PEDIDO
 # =====================================================
 
 @login_required
 def cancelar_pedido(request, pk):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden(
-            'Você não tem permissão para cancelar pedidos.'
-        )
+    if not usuario_tem_funcao(
+        request.user,
+        ['Gerente', 'Atendente']
+    ):
+        return acesso_negado(request)
 
     pedido = get_object_or_404(Pedido, pk=pk)
 
@@ -819,13 +940,16 @@ def cancelar_pedido(request, pk):
                 request,
                 'Não é possível cancelar um pedido concluído.'
             )
+
         elif pedido.status == 'Cancelado':
             messages.warning(
                 request,
                 'Este pedido já está cancelado.'
             )
+
         else:
             pedido.cancelarPedido()
+
             messages.success(
                 request,
                 f'Pedido #{pedido.id_pedido} cancelado com sucesso!'
@@ -833,13 +957,15 @@ def cancelar_pedido(request, pk):
 
     return redirect('listar_pedidos')
 
+
 # =====================================================
-# listar entregas
+# LISTAR ENTREGAS
 # =====================================================
+
 @login_required
 def listar_entregas(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     entregas = Entrega.objects.select_related(
         'pedido',
@@ -848,17 +974,19 @@ def listar_entregas(request):
     ).all().order_by('-id_entrega')
 
     return render(request, 'entregas/listar.html', {
-    'entregas': entregas,
-    'entregadores': Entregador.objects.filter(disponibilidade=True)
+        'entregas': entregas,
+        'entregadores': Entregador.objects.filter(disponibilidade=True)
     })
 
+
 # =====================================================
-# Atribuir Entregas a entregadores
+# ATRIBUIR ENTREGAS A ENTREGADORES
 # =====================================================
+
 @login_required
 def atribuir_entregador(request, id_entrega):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     entrega = get_object_or_404(Entrega, pk=id_entrega)
 
@@ -889,18 +1017,17 @@ def atribuir_entregador(request, id_entrega):
             'Entregador atribuído com sucesso!'
         )
 
-        return redirect('listar_entregas')
-
     return redirect('listar_entregas')
 
 
 # =====================================================
-# Atualiza as disponibilidades do entregador
+# ATUALIZAR STATUS DA ENTREGA
 # =====================================================
+
 @login_required
 def atualizar_status_entrega(request, id_entrega):
     if not hasattr(request.user, 'entregador'):
-        return HttpResponseForbidden('Acesso exclusivo para entregadores.')
+        return acesso_negado(request)
 
     if request.method != 'POST':
         return redirect('area_entregador')
@@ -929,6 +1056,7 @@ def atualizar_status_entrega(request, id_entrega):
 
         entrega.status_entrega = 'Entregue'
         entrega.data_entrega = timezone.now()
+
         entrega.pedido.status = 'Concluído'
 
         entregador = entrega.entregador
@@ -945,15 +1073,15 @@ def atualizar_status_entrega(request, id_entrega):
     messages.success(request, 'Status da entrega atualizado!')
     return redirect('area_entregador')
 
+
 # =====================================================
-# Entregadores podem visualizar as entregas atribuidas a eles
+# ENTREGAS ATRIBUÍDAS AO ENTREGADOR
 # =====================================================
+
 @login_required
 def minhas_entregas(request):
     if not hasattr(request.user, 'entregador'):
-        return HttpResponseForbidden(
-            'Esta funcionalidade é exclusiva para entregadores.'
-        )
+        return acesso_negado(request)
 
     entregas = Entrega.objects.filter(
         entregador=request.user.entregador
@@ -967,13 +1095,13 @@ def minhas_entregas(request):
     })
 
 # =====================================================
-# Cadastrar Produto
+# CADASTRAR PRODUTO
 # =====================================================
 
 @login_required
 def cadastrar_produto(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     if request.method == 'POST':
         form = ProdutoForm(request.POST)
@@ -982,7 +1110,6 @@ def cadastrar_produto(request):
             form.save()
             messages.success(request, 'Produto cadastrado com sucesso!')
             return redirect('listar_produtos')
-
     else:
         form = ProdutoForm()
 
@@ -992,14 +1119,15 @@ def cadastrar_produto(request):
         {'form': form}
     )
 
+
 # =====================================================
-# Editar Produto
+# EDITAR PRODUTO
 # =====================================================
 
 @login_required
 def editar_produto(request, produto_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     produto = get_object_or_404(Produto, pk=produto_id)
 
@@ -1010,7 +1138,6 @@ def editar_produto(request, produto_id):
             form.save()
             messages.success(request, 'Produto atualizado com sucesso!')
             return redirect('listar_produtos')
-
     else:
         form = ProdutoForm(instance=produto)
 
@@ -1023,14 +1150,15 @@ def editar_produto(request, produto_id):
         }
     )
 
+
 # =====================================================
-# Excluir Produto
+# EXCLUIR PRODUTO
 # =====================================================
 
 @login_required
 def excluir_produto(request, produto_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     produto = get_object_or_404(Produto, pk=produto_id)
 
@@ -1045,11 +1173,16 @@ def excluir_produto(request, produto_id):
         {'produto': produto}
     )
 
+
 # =====================================================
-# Listar Produto
+# LISTAR PRODUTOS
 # =====================================================
+
 @login_required
 def listar_produtos(request):
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
+
     produtos = Produto.objects.all().order_by('nome')
 
     return render(
@@ -1058,13 +1191,15 @@ def listar_produtos(request):
         {'produtos': produtos}
     )
 
+
 # =====================================================
-# Cadastrar Ingredientes
+# CADASTRAR INGREDIENTE
 # =====================================================
+
 @login_required
 def cadastrar_ingrediente(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     if request.method == 'POST':
         form = IngredienteForm(request.POST)
@@ -1081,15 +1216,14 @@ def cadastrar_ingrediente(request):
     })
 
 
-
-
 # =====================================================
-# Listar Ingredientes
+# LISTAR INGREDIENTES
 # =====================================================
+
 @login_required
 def listar_ingredientes(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     ingredientes = Ingrediente.objects.all().order_by('nome')
 
@@ -1097,13 +1231,15 @@ def listar_ingredientes(request):
         'ingredientes': ingredientes
     })
 
+
 # =====================================================
-# Editar Ingredientes
+# EDITAR INGREDIENTE
 # =====================================================
+
 @login_required
 def editar_ingrediente(request, ingrediente_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     ingrediente = get_object_or_404(Ingrediente, pk=ingrediente_id)
 
@@ -1122,27 +1258,27 @@ def editar_ingrediente(request, ingrediente_id):
         'ingrediente': ingrediente
     })
 
+
 # =====================================================
-# Excluir Ingredientes
+# EXCLUIR INGREDIENTE
 # =====================================================
 
 @login_required
 def excluir_ingrediente(request, ingrediente_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     ingrediente = get_object_or_404(Ingrediente, pk=ingrediente_id)
 
     if request.method == 'POST':
-
         if hasattr(ingrediente, 'estoque') or ingrediente.receitas.exists():
-         messages.warning(
-         request,
-         f'Não foi possível excluir o ingrediente "{ingrediente.nome}", '
-         'pois ele está vinculado ao estoque ou a uma receita. '
-         'Remova esses vínculos antes de tentar novamente.'
-         )
-         return redirect('listar_ingredientes')
+            messages.warning(
+                request,
+                f'Não foi possível excluir o ingrediente "{ingrediente.nome}", '
+                'pois ele está vinculado ao estoque ou a uma receita. '
+                'Remova esses vínculos antes de tentar novamente.'
+            )
+            return redirect('listar_ingredientes')
 
         ingrediente.delete()
 
@@ -1154,13 +1290,13 @@ def excluir_ingrediente(request, ingrediente_id):
     })
 
 # =====================================================
-# Listar Estoque
+# LISTAR ESTOQUE
 # =====================================================
 
 @login_required
 def listar_estoque(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     estoques = Estoque.objects.select_related(
         'ingrediente'
@@ -1177,14 +1313,15 @@ def listar_estoque(request):
         'estoques_baixos': estoques_baixos,
     })
 
+
 # =====================================================
-# Cadastrar Estoque
+# CADASTRAR ESTOQUE
 # =====================================================
 
 @login_required
 def cadastrar_estoque(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     if request.method == 'POST':
         form = EstoqueForm(request.POST)
@@ -1244,11 +1381,14 @@ def cadastrar_estoque(request):
                         caixa=caixa,
                         tipo='Saida',
                         origem='Compra',
-                        descricao=(
-                            f'Compra de estoque: {ingrediente.nome}'
-                        ),
+                        descricao=f'Compra de estoque: {ingrediente.nome}',
                         valor=valor_pago,
                         funcionario=funcionario
+                        
+                    )
+                    if valor_pago > caixa.saldo_atual:
+                     raise ValueError(
+                    'Saldo insuficiente para realizar esta compra.'
                     )
 
                     caixa.saldo_atual -= valor_pago
@@ -1265,7 +1405,6 @@ def cadastrar_estoque(request):
 
             except ValueError as erro:
                 messages.error(request, str(erro))
-
     else:
         form = EstoqueForm()
 
@@ -1273,14 +1412,15 @@ def cadastrar_estoque(request):
         'form': form
     })
 
+
 # =====================================================
-# Editar Estoque
+# EDITAR ESTOQUE
 # =====================================================
 
 @login_required
 def editar_estoque(request, estoque_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     estoque = get_object_or_404(Estoque, pk=estoque_id)
 
@@ -1345,6 +1485,10 @@ def editar_estoque(request, estoque_id):
                         valor=valor_pago,
                         funcionario=funcionario
                     )
+                    if valor_pago > caixa.saldo_atual:
+                     raise ValueError(
+                      'Saldo insuficiente para realizar esta compra.'
+                     )
 
                     caixa.saldo_atual -= valor_pago
                     caixa.save(update_fields=[
@@ -1360,7 +1504,6 @@ def editar_estoque(request, estoque_id):
 
             except ValueError as erro:
                 messages.error(request, str(erro))
-
     else:
         form = EstoqueForm(instance=estoque)
 
@@ -1370,20 +1513,23 @@ def editar_estoque(request, estoque_id):
     })
 
 
+# =====================================================
+# EXCLUIR ESTOQUE
+# =====================================================
 
-# =====================================================
-# Excluir Estoque
-# =====================================================
 @login_required
 def excluir_estoque(request, estoque_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     estoque = get_object_or_404(Estoque, pk=estoque_id)
 
     if request.method == 'POST':
         estoque.delete()
-        messages.success(request, 'Registro de estoque excluído com sucesso!')
+        messages.success(
+            request,
+            'Registro de estoque excluído com sucesso!'
+        )
         return redirect('listar_estoque')
 
     return render(request, 'estoque/excluir_estoque.html', {
@@ -1395,8 +1541,8 @@ def excluir_estoque(request, estoque_id):
 # =====================================================
 @login_required
 def listar_receitas(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     receitas = Receita.objects.select_related(
         'produto', 'ingrediente'
@@ -1406,18 +1552,21 @@ def listar_receitas(request):
         'receitas': receitas
     })
 
+
 # =====================================================
 # Cadastrar Receitas
 # =====================================================
 @login_required
 def cadastrar_receita(request):
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
+
     produtos = Produto.objects.all().order_by('nome')
+
     ingredientes_unidades = {
-    str(ingrediente.id_ingrediente): ingrediente.unidade_medida
-    for ingrediente in Ingrediente.objects.all()
-     }
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+        str(ingrediente.id_ingrediente): ingrediente.unidade_medida
+        for ingrediente in Ingrediente.objects.all()
+    }
 
     from .forms import ReceitaFormSet
 
@@ -1432,7 +1581,7 @@ def cadastrar_receita(request):
                 if form.cleaned_data:
                     ingrediente = form.cleaned_data['ingrediente']
 
-                    receita, criada = Receita.objects.update_or_create(
+                    Receita.objects.update_or_create(
                         produto=produto,
                         ingrediente=ingrediente,
                         defaults={
@@ -1448,10 +1597,10 @@ def cadastrar_receita(request):
         formset = ReceitaFormSet()
 
     return render(request, 'receitas/cadastrar.html', {
-    'produtos': produtos,
-    'formset': formset,
-    'ingredientes_unidades': ingredientes_unidades,
-     })
+        'produtos': produtos,
+        'formset': formset,
+        'ingredientes_unidades': ingredientes_unidades,
+    })
 
 
 # =====================================================
@@ -1459,8 +1608,8 @@ def cadastrar_receita(request):
 # =====================================================
 @login_required
 def editar_receita(request, produto_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     from .forms import ReceitaFormSet
     from django.db import transaction
@@ -1515,22 +1664,19 @@ def editar_receita(request, produto_id):
 
         formset = ReceitaFormSet(initial=dados_iniciais)
 
-    return render(
-        request,
-        'receitas/editar.html',
-        {
-            'formset': formset,
-            'produto': produto,
-        },
-    )
+    return render(request, 'receitas/editar.html', {
+        'formset': formset,
+        'produto': produto,
+    })
+
 
 # =====================================================
 # Excluir Receitas
 # =====================================================
 @login_required
 def excluir_receita(request, produto_id):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente']):
+        return acesso_negado(request)
 
     produto = get_object_or_404(Produto, pk=produto_id)
 
@@ -1544,36 +1690,37 @@ def excluir_receita(request, produto_id):
 
         return redirect('listar_receitas')
 
-    return render(
-        request,
-        'receitas/excluir.html',
-        {'produto': produto}
-    )
+    return render(request, 'receitas/excluir.html', {
+        'produto': produto
+    })
 
+
+# =====================================================
+# Listar Pagamentos
+# =====================================================
 @login_required
 def listar_pagamentos(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
+        return acesso_negado(request)
 
     pagamentos = Pagamento.objects.select_related(
         'pedido',
         'pedido__cliente'
     ).all().order_by('-id_pagamento')
 
-    return render(
-    request,
-    'pagamentos/listar_pagamentos.html',
-    {
+    return render(request, 'pagamentos/listar_pagamentos.html', {
         'pagamentos': pagamentos,
         'status_choices': Pagamento.STATUS_CHOICES,
-    }
-)
+    })
 
 
+# =====================================================
+# Atualizar Status do Pagamento
+# =====================================================
 @login_required
 def atualizar_status_pagamento(request, id_pagamento):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
+        return acesso_negado(request)
 
     pagamento = get_object_or_404(
         Pagamento,
@@ -1611,7 +1758,7 @@ def atualizar_status_pagamento(request, id_pagamento):
 @login_required
 def gerenciar_pizzaria(request):
     if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+        return acesso_negado(request)
 
     pizzaria = Pizzaria.objects.first()
 
@@ -1623,27 +1770,33 @@ def gerenciar_pizzaria(request):
 
         if form.is_valid():
             form.save()
+
             messages.success(
                 request,
                 'Dados da pizzaria atualizados com sucesso!'
             )
             return redirect('gerenciar_pizzaria')
+
     else:
         form = PizzariaForm(instance=pizzaria)
 
     return render(
         request,
         'pizzaria/gerenciar.html',
-        {'form': form, 'pizzaria': pizzaria}
+        {
+            'form': form,
+            'pizzaria': pizzaria
+        }
     )
-# =====================================================
-# CONSULTAR CAIXA DA PIZZARIA
-# =====================================================
 
+
+# =====================================================
+# Consultar Caixa da Pizzaria
+# =====================================================
 @login_required
 def consultar_caixa(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
+        return acesso_negado(request)
 
     caixa = CaixaPizzaria.objects.select_related(
         'pizzaria'
@@ -1652,12 +1805,11 @@ def consultar_caixa(request):
     movimentacoes = []
 
     if caixa:
-        movimentacoes = MovimentacaoCaixa.objects.filter(
-            caixa=caixa
-        ).select_related(
-            'funcionario',
-            'pedido'
-        ).order_by('-data_movimentacao')
+        movimentacoes = (
+            MovimentacaoCaixa.objects.filter(caixa=caixa)
+            .select_related('funcionario', 'pedido')
+            .order_by('-data_movimentacao')
+        )
 
     return render(
         request,
@@ -1665,18 +1817,17 @@ def consultar_caixa(request):
         {
             'caixa': caixa,
             'movimentacoes': movimentacoes,
-        }
+        },
     )
 
 
 # =====================================================
-# Registrar Movimentação Caixa
+# Registrar Movimentação do Caixa
 # =====================================================
-
 @login_required
 def registrar_movimentacao_caixa(request):
-    if not acesso_administrativo(request.user):
-        return HttpResponseForbidden('Acesso negado.')
+    if not usuario_tem_funcao(request.user, ['Gerente', 'Caixa']):
+        return acesso_negado(request)
 
     caixa = CaixaPizzaria.objects.first()
 

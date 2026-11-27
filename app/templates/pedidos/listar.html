@@ -10,6 +10,7 @@
     <h1>Pedidos Recebidos</h1>
 
     {% if pedidos %}
+
         {% for pedido in pedidos %}
 
             <div class="card shadow-sm mb-4">
@@ -17,11 +18,30 @@
 
                     <h3>Pedido #{{ pedido.id_pedido }}</h3>
 
-                    <p><strong>Cliente:</strong> {{ pedido.cliente.nome }}</p>
-                    <p><strong>Data:</strong> {{ pedido.data_hora }}</p>
-                    <p><strong>Status:</strong> {{ pedido.status }}</p>
-                    <p><strong>Tipo:</strong> {{ pedido.tipo_entrega }}</p>
-                    <p><strong>Total:</strong> R$ {{ pedido.preco_total }}</p>
+                    <p>
+                        <strong>Cliente:</strong>
+                        {{ pedido.cliente.nome }}
+                    </p>
+
+                    <p>
+                        <strong>Data:</strong>
+                        {{ pedido.data_hora }}
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong>
+                        {{ pedido.status }}
+                    </p>
+
+                    <p>
+                        <strong>Tipo:</strong>
+                        {{ pedido.tipo_entrega }}
+                    </p>
+
+                    <p>
+                        <strong>Total:</strong>
+                        R$ {{ pedido.preco_total }}
+                    </p>
 
                     <h5>Produtos:</h5>
 
@@ -45,13 +65,14 @@
 
                             {% csrf_token %}
 
-                            <label for="status-{{ pedido.pk }}" class="form-label">
+                            <label for="status-{{ pedido.pk }}"
+                                   class="form-label">
                                 Atualizar status:
                             </label>
 
                             <select name="status"
                                     id="status-{{ pedido.pk }}"
-                                    class="form-select mb-2">
+                                    class="form-select mb-3">
 
                                 {% for valor, descricao in status_choices %}
                                     <option value="{{ valor }}"
@@ -62,7 +83,33 @@
 
                             </select>
 
-                            <button type="submit" class="btn btn-primary">
+                            {% if pedido.status != 'Em preparação' and pedido.status != 'Pronto' %}
+
+                                <label for="funcionario-{{ pedido.pk }}"
+                                       class="form-label">
+                                    Cozinheiro responsável:
+                                </label>
+
+                                <select name="funcionario_responsavel"
+                                        id="funcionario-{{ pedido.pk }}"
+                                        class="form-select mb-3">
+
+                                    <option value="">
+                                        Selecione o cozinheiro
+                                    </option>
+
+                                    {% for funcionario in cozinheiros %}
+                                        <option value="{{ funcionario.pk }}">
+                                            {{ funcionario.nome }} - {{ funcionario.funcao }}
+                                        </option>
+                                    {% endfor %}
+
+                                </select>
+
+                            {% endif %}
+
+                            <button type="submit"
+                                    class="btn btn-primary">
                                 Atualizar status
                             </button>
 
@@ -73,7 +120,8 @@
 
                             {% csrf_token %}
 
-                            <button type="submit" class="btn btn-danger">
+                            <button type="submit"
+                                    class="btn btn-danger">
                                 Cancelar pedido
                             </button>
 
@@ -92,7 +140,8 @@
 
     {% endif %}
 
-    <a href="{% url 'area_pizzaria' %}" class="btn btn-secondary">
+    <a href="{% url 'area_pizzaria' %}"
+       class="btn btn-secondary">
         Voltar
     </a>
 

@@ -1,0 +1,67 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Entregadores{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Entregadores cadastrados</h2>
+
+        <a href="{% url 'cadastrar_entregador' %}" class="btn btn-danger">
+            Cadastrar entregador
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Usuário</th>
+                            <th>Telefone</th>
+                            <th>Taxa de entrega</th>
+                            <th>Disponibilidade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for entregador in entregadores %}
+                        <tr>
+                            <td>{{ entregador.nome }}</td>
+                            <td>{{ entregador.username }}</td>
+                            <td>{{ entregador.numero_telefone }}</td>
+                            <td>R$ {{ entregador.taxa_entrega|floatformat:2 }}</td>
+                            <td>{{ entregador.disponibilidade }}</td>
+                            <td>
+                                <a href="{% url 'editar_entregador' entregador.pk %}"
+                                   class="btn btn-warning btn-sm">
+                                    Editar
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                Nenhum entregador cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <a href="{% url 'area_pizzaria' %}" class="btn btn-secondary mt-3">
+        Voltar
+    </a>
+
+</div>
+{% endblock %}

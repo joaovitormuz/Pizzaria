@@ -89,7 +89,18 @@ class Funcionario(Usuario):
     )
 
     disponibilidade = models.BooleanField(default=True)
-    funcao = models.CharField(max_length=100)
+    FUNCOES = [
+    ('Gerente', 'Gerente'),
+    ('Atendente', 'Atendente'),
+    ('Pizzaiolo', 'Pizzaiolo'),
+    ('Auxiliar de Cozinha', 'Auxiliar de Cozinha'),
+    ('Caixa', 'Caixa'),
+    ]
+ 
+    funcao = models.CharField(
+    max_length=100,
+    choices=FUNCOES
+    )
 
     def atualizarStatus(self):
         pass

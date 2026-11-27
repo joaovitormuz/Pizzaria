@@ -235,9 +235,16 @@
         <div class="dashboard-card">
             <div class="card-icon">👨‍🍳</div>
             <h5>Funcionários</h5>
-            <p>Cadastre novos funcionários para a pizzaria.</p>
-            <a href="{% url 'cadastrar_funcionario' %}" class="dashboard-btn">
+            <p>Cadastre e gerencie os funcionários da pizzaria.</p>
+
+            <a href="{% url 'cadastrar_funcionario' %}"
+               class="dashboard-btn mb-2">
                 Cadastrar funcionário
+            </a>
+
+            <a href="{% url 'listar_funcionarios' %}"
+               class="btn btn-outline-danger w-100">
+                Gerenciar funcionários
             </a>
         </div>
     </div>
@@ -246,9 +253,16 @@
         <div class="dashboard-card">
             <div class="card-icon">🛵</div>
             <h5>Entregadores</h5>
-            <p>Cadastre novos entregadores para as operações.</p>
-            <a href="{% url 'cadastrar_entregador' %}" class="dashboard-btn">
+            <p>Cadastre e gerencie os entregadores.</p>
+
+            <a href="{% url 'cadastrar_entregador' %}"
+               class="dashboard-btn mb-2">
                 Cadastrar entregador
+            </a>
+
+            <a href="{% url 'listar_entregadores' %}"
+               class="btn btn-outline-danger w-100">
+                Gerenciar entregadores
             </a>
         </div>
     </div>

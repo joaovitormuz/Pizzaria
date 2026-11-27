@@ -1,0 +1,67 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Funcionários{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Funcionários cadastrados</h2>
+
+        <a href="{% url 'cadastrar_funcionario' %}" class="btn btn-danger">
+            Cadastrar funcionário
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Usuário</th>
+                            <th>Função</th>
+                            <th>Telefone</th>
+                            <th>Disponibilidade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for funcionario in funcionarios %}
+                        <tr>
+                            <td>{{ funcionario.nome }}</td>
+                            <td>{{ funcionario.username }}</td>
+                            <td>{{ funcionario.funcao }}</td>
+                            <td>{{ funcionario.numero_telefone }}</td>
+                            <td>{{ funcionario.disponibilidade }}</td>
+                            <td>
+                                <a href="{% url 'editar_funcionario' funcionario.pk %}"
+                                   class="btn btn-warning btn-sm">
+                                    Editar
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                Nenhum funcionário cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <a href="{% url 'area_pizzaria' %}" class="btn btn-secondary mt-3">
+        Voltar
+    </a>
+
+</div>
+{% endblock %}

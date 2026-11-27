@@ -44,12 +44,40 @@ urlpatterns = [
     name='cadastrar_funcionario'
     ),
 
+    # Editar Funcionario
+    path(
+    'funcionarios/editar/<int:id_funcionario>/',
+    views.editar_funcionario,
+    name='editar_funcionario'
+    ),
+
+    # Listar Funcionario
+    path(
+    'funcionarios/',
+    views.listar_funcionarios,
+    name='listar_funcionarios'
+    ),
+
     # Cadastrar Entregador
     path(
     'entregadores/cadastrar/',
     views.cadastrar_entregador,
     name='cadastrar_entregador'
-),
+    ),
+
+    # Editar Entregador
+    path(
+    'entregadores/editar/<int:id_entregador>/',
+    views.editar_entregador,
+    name='editar_entregador'
+    ),
+
+    # Listar Entregador
+    path(
+    'entregadores/',
+    views.listar_entregadores,
+    name='listar_entregadores'
+    ),
 
     # Login e logout
     

@@ -150,6 +150,7 @@ class ConfirmarPedidoForm(forms.Form):
 
         return cleaned_data
 
+
 class FuncionarioForm(forms.ModelForm):
     username = forms.CharField(
         label='Nome de usuário',
@@ -158,7 +159,8 @@ class FuncionarioForm(forms.ModelForm):
 
     senha = forms.CharField(
         label='Senha',
-        widget=forms.PasswordInput
+        widget=forms.PasswordInput,
+        required=False
     )
 
     class Meta:
@@ -174,12 +176,19 @@ class FuncionarioForm(forms.ModelForm):
             'funcao'
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance and self.instance.pk:
+            self.fields['username'].initial = self.instance.username
+
     def save(self, commit=True):
         funcionario = super().save(commit=False)
-        funcionario.set_password(
-            self.cleaned_data['senha']
-        )
-        funcionario.is_staff = True
+        funcionario.username = self.cleaned_data['username']
+
+        senha = self.cleaned_data.get('senha')
+        if senha:
+            funcionario.set_password(senha)
 
         if commit:
             funcionario.save()
@@ -187,6 +196,7 @@ class FuncionarioForm(forms.ModelForm):
         return funcionario
 
     
+
 class EntregadorForm(forms.ModelForm):
     username = forms.CharField(
         label='Nome de usuário',
@@ -195,7 +205,8 @@ class EntregadorForm(forms.ModelForm):
 
     senha = forms.CharField(
         label='Senha',
-        widget=forms.PasswordInput
+        widget=forms.PasswordInput,
+        required=False
     )
 
     class Meta:
@@ -210,14 +221,25 @@ class EntregadorForm(forms.ModelForm):
             'disponibilidade'
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance and self.instance.pk:
+            self.fields['username'].initial = self.instance.username
+
     def save(self, commit=True):
         entregador = super().save(commit=False)
-        entregador.set_password(self.cleaned_data['senha'])
+        entregador.username = self.cleaned_data['username']
+
+        senha = self.cleaned_data.get('senha')
+        if senha:
+            entregador.set_password(senha)
 
         if commit:
             entregador.save()
 
         return entregador
+
 
 
 class IngredienteForm(forms.ModelForm):

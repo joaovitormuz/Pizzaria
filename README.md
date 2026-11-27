@@ -58,3 +58,5 @@
 
 # Editar Dados da Pizzaria
 
+# Correção Das Permissões 
+

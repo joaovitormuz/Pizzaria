@@ -10,6 +10,7 @@ from .models import (
     Pizzaria,
     Ingrediente,
     Estoque,
+    MovimentacaoEstoque,
     Produto,
     Receita,
     Pedido,
@@ -115,6 +116,22 @@ class IngredienteAdmin(admin.ModelAdmin):
 class EstoqueAdmin(admin.ModelAdmin):
     list_display = ('ingrediente', 'quantidade_estoque',
                     'quantidade_minima', 'data_atualizacao')
+
+# Movimentações de estoque
+@admin.register(MovimentacaoEstoque)
+class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_movimentacao',
+        'ingrediente',
+        'tipo',
+        'quantidade',
+        'data_hora',
+        'funcionario',
+    )
+
+    search_fields = ('ingrediente__nome', 'descricao')
+    list_filter = ('tipo', 'data_hora')
+    ordering = ('-data_hora',)
 
 
 # Produtos

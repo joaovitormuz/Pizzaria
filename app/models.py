@@ -144,7 +144,7 @@ class Pizzaria(models.Model):
 
 
 # =====================================================
-# GERENCIAMENTO DE INGREDIENTES E ESTOQUE
+# GERENCIAMENTO DE INGREDIENTES 
 # =====================================================
 
 class Ingrediente(models.Model):
@@ -185,7 +185,9 @@ class Ingrediente(models.Model):
     def __str__(self):
         return self.nome
 
-
+# =====================================================
+# GERENCIAMENTO DE ESTOQUE 
+# =====================================================
 class Estoque(models.Model):
 
     id_estoque = models.AutoField(primary_key=True)
@@ -218,6 +220,59 @@ class Estoque(models.Model):
 
     def __str__(self):
         return f'Estoque: {self.ingrediente.nome}'
+
+
+
+# =====================================================
+# Movimentação de estoque
+# =====================================================
+class MovimentacaoEstoque(models.Model):
+
+    id_movimentacao = models.AutoField(primary_key=True)
+
+    TIPOS_MOVIMENTACAO = [
+        ('entrada', 'Entrada'),
+        ('saida', 'Saída'),
+        ('ajuste', 'Ajuste'),
+    ]
+
+    ingrediente = models.ForeignKey(
+        Ingrediente,
+        on_delete=models.PROTECT,
+        related_name='movimentacoes'
+    )
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPOS_MOVIMENTACAO
+    )
+
+    quantidade = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        validators=[MinValueValidator(0.001)]
+    )
+
+    data_hora = models.DateTimeField(auto_now_add=True)
+
+    descricao = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    funcionario = models.ForeignKey(
+        Funcionario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='movimentacoes_estoque'
+    )
+
+    def __str__(self):
+        return (
+            f'{self.get_tipo_display()} - '
+            f'{self.ingrediente.nome} - {self.quantidade}'
+        )
 
 # =====================================================
 # GERENCIAMENTO DE PRODUTOS
@@ -457,7 +512,17 @@ class Pagamento(models.Model):
         validators=[MinValueValidator(0)]
     )
 
-    metodo_pagamento = models.CharField(max_length=50)
+    METODOS_PAGAMENTO = [
+    ('Pix', 'Pix'),
+    ('Dinheiro', 'Dinheiro'),
+    ('Cartão de crédito', 'Cartão de crédito'),
+    ('Cartão de débito', 'Cartão de débito'),
+    ]
+
+    metodo_pagamento = models.CharField(
+    max_length=50,
+    choices=METODOS_PAGAMENTO
+    )
 
     status_pagamento = models.CharField(
         max_length=20,

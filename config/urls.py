@@ -228,5 +228,16 @@ urlpatterns = [
     views.excluir_estoque,
     name='excluir_estoque'
     ),
-   
+    path(
+    'pagamentos/',
+    views.listar_pagamentos,
+    name='listar_pagamentos'
+    ),
+
+    path(
+    'pagamentos/<int:id_pagamento>/atualizar/',
+    views.atualizar_status_pagamento,
+    name='atualizar_status_pagamento'
+    ),
+    
 ]

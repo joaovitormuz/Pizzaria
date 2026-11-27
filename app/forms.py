@@ -87,11 +87,19 @@ class ProdutoForm(forms.ModelForm):
             })
         }
 
+
 class ConfirmarPedidoForm(forms.Form):
 
     TIPO_ENTREGA_CHOICES = [
         ('Entrega', 'Entrega'),
         ('Retirada', 'Retirada'),
+    ]
+
+    METODOS_PAGAMENTO = [
+        ('Pix', 'Pix'),
+        ('Dinheiro', 'Dinheiro'),
+        ('Cartão de crédito', 'Cartão de crédito'),
+        ('Cartão de débito', 'Cartão de débito'),
     ]
 
     tipo_entrega = forms.ChoiceField(
@@ -103,6 +111,11 @@ class ConfirmarPedidoForm(forms.Form):
         label='Endereço de entrega',
         max_length=255,
         required=False
+    )
+
+    metodo_pagamento = forms.ChoiceField(
+        label='Método de pagamento',
+        choices=METODOS_PAGAMENTO
     )
 
     def clean(self):
@@ -119,7 +132,6 @@ class ConfirmarPedidoForm(forms.Form):
 
         return cleaned_data
 
-    
 class FuncionarioForm(forms.ModelForm):
     username = forms.CharField(
         label='Nome de usuário',

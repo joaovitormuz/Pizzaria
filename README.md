@@ -46,3 +46,5 @@
 
 # Subtração automatica do estoque quando o pedido é colocado em preparação
 
+# Pagamentos
+

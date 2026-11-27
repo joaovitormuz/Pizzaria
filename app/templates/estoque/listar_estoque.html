@@ -12,6 +12,36 @@
         </a>
     </div>
 
+    {% if estoques_baixos %}
+        <div class="alert alert-danger">
+            <h5 class="alert-heading">
+                Atenção! Estoque baixo.
+            </h5>
+
+            <p>
+                Existem {{ estoques_baixos|length }}
+                ingrediente(s) que precisam de reposição:
+            </p>
+
+            <ul class="mb-0">
+                {% for estoque in estoques_baixos %}
+                    <li>
+                        <strong>{{ estoque.ingrediente.nome }}</strong>:
+                        {{ estoque.quantidade_estoque }}
+                        {{ estoque.ingrediente.get_unidade_medida_display }}
+                        (mínimo: {{ estoque.quantidade_minima }}
+                        {{ estoque.ingrediente.get_unidade_medida_display }})
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <div class="alert alert-success">
+            <strong>Estoque adequado!</strong>
+            Todos os ingredientes estão acima da quantidade mínima.
+        </div>
+    {% endif %}
+
     <div class="card shadow-sm">
         <div class="card-body">
 
@@ -43,9 +73,13 @@
 
                         <td>
                             {% if estoque.verificarEstoque %}
-                                <span class="badge bg-danger">Estoque baixo</span>
+                                <span class="badge bg-danger">
+                                    Estoque baixo
+                                </span>
                             {% else %}
-                                <span class="badge bg-success">Normal</span>
+                                <span class="badge bg-success">
+                                    Normal
+                                </span>
                             {% endif %}
                         </td>
 

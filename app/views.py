@@ -37,7 +37,9 @@ from .models import (
     Entregador,
     Ingrediente,
     Estoque,
-    Receita
+    Receita,
+    MovimentacaoEstoque,
+    Pagamento
 )
 
 
@@ -450,6 +452,7 @@ def visualizar_carrinho(request):
 # CONFIRMAR PEDIDO
 # =====================================================
 
+
 @login_required
 def confirmar_pedido(request):
     if not hasattr(request.user, 'cliente'):
@@ -495,12 +498,21 @@ def confirmar_pedido(request):
 
                     pedido.calcularTotal()
 
+                    Pagamento.objects.create(
+                        pedido=pedido,
+                        valor=pedido.preco_total,
+                        metodo_pagamento=form.cleaned_data[
+                            'metodo_pagamento'
+                        ],
+                        status_pagamento='Pendente'
+                    )
+
                     if pedido.tipo_entrega == 'Entrega':
-                     Entrega.objects.create(
-                     pedido=pedido,
-                     endereco_entrega=pedido.endereco_entrega,
-                     taxa_entrega=0
-                     )
+                        Entrega.objects.create(
+                            pedido=pedido,
+                            endereco_entrega=pedido.endereco_entrega,
+                            taxa_entrega=0
+                        )
 
                 del request.session['carrinho']
 
@@ -526,6 +538,7 @@ def confirmar_pedido(request):
         'clientes/confirmar_pedido.html',
         {'form': form}
     )
+
 
 # =====================================================
 # LISTAR PEDIDOS PARA A PIZZARIA
@@ -558,6 +571,7 @@ def listar_pedidos(request):
 # =====================================================
 
 
+
 @login_required
 def atualizar_status_pedido(request, pk):
     if not acesso_administrativo(request.user):
@@ -578,6 +592,11 @@ def atualizar_status_pedido(request, pk):
         try:
             with transaction.atomic():
 
+                # Bloqueia o pedido durante a operação
+                pedido = Pedido.objects.select_for_update().get(
+                    pk=pk
+                )
+
                 # Baixa o estoque somente ao iniciar a preparação
                 if (
                     novo_status == 'Em preparação'
@@ -586,7 +605,9 @@ def atualizar_status_pedido(request, pk):
 
                     quantidades_necessarias = {}
 
-                    itens = pedido.itens.select_related('produto').all()
+                    itens = pedido.itens.select_related(
+                        'produto'
+                    ).all()
 
                     if not itens.exists():
                         raise ValueError(
@@ -620,7 +641,7 @@ def atualizar_status_pedido(request, pk):
                                 ) + quantidade
                             )
 
-                    # Bloqueia os registros de estoque durante a operação
+                    # Bloqueia os registros de estoque
                     estoques = Estoque.objects.select_for_update().filter(
                         ingrediente_id__in=quantidades_necessarias.keys()
                     )
@@ -630,7 +651,7 @@ def atualizar_status_pedido(request, pk):
                         for estoque in estoques
                     }
 
-                    # Verifica todos os ingredientes antes de descontar
+                    # Verifica todos os ingredientes antes da baixa
                     for ingrediente_id, quantidade in quantidades_necessarias.items():
 
                         estoque = estoques_por_ingrediente.get(
@@ -656,16 +677,33 @@ def atualizar_status_pedido(request, pk):
                                 f'Disponível: {estoque.quantidade_estoque}.'
                             )
 
-                    # Desconta os ingredientes
+                    # Realiza a baixa e registra cada saída
                     for ingrediente_id, quantidade in quantidades_necessarias.items():
 
                         estoque = estoques_por_ingrediente[ingrediente_id]
+
                         estoque.quantidade_estoque -= quantidade
+
                         estoque.save(
                             update_fields=[
                                 'quantidade_estoque',
                                 'data_atualizacao'
                             ]
+                        )
+
+                    MovimentacaoEstoque.objects.create(
+                            ingrediente=estoque.ingrediente,
+                            tipo='saida',
+                            quantidade=quantidade,
+                            descricao=(
+                                f'Consumo do pedido '
+                                f'#{pedido.id_pedido}'
+                            ),
+                            funcionario=(
+                                request.user
+                                if isinstance(request.user, Funcionario)
+                                else None
+                            )
                         )
 
                     pedido.estoque_baixado = True
@@ -674,7 +712,10 @@ def atualizar_status_pedido(request, pk):
                 pedido.status = novo_status
 
                 pedido.save(
-                    update_fields=['status', 'estoque_baixado']
+                    update_fields=[
+                        'status',
+                        'estoque_baixado'
+                    ]
                 )
 
             messages.success(
@@ -1044,6 +1085,7 @@ def excluir_ingrediente(request, ingrediente_id):
 # =====================================================
 # Listar Estoque
 # =====================================================
+
 @login_required
 def listar_estoque(request):
     if not acesso_administrativo(request.user):
@@ -1053,8 +1095,15 @@ def listar_estoque(request):
         'ingrediente'
     ).all().order_by('ingrediente__nome')
 
+    # Identifica os ingredientes com estoque baixo
+    estoques_baixos = [
+        estoque for estoque in estoques
+        if estoque.verificarEstoque()
+    ]
+
     return render(request, 'estoque/listar_estoque.html', {
-        'estoques': estoques
+        'estoques': estoques,
+        'estoques_baixos': estoques_baixos,
     })
 
 # =====================================================
@@ -1283,3 +1332,58 @@ def excluir_receita(request, produto_id):
         'receitas/excluir.html',
         {'produto': produto}
     )
+
+@login_required
+def listar_pagamentos(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    pagamentos = Pagamento.objects.select_related(
+        'pedido',
+        'pedido__cliente'
+    ).all().order_by('-id_pagamento')
+
+    return render(
+    request,
+    'pagamentos/listar_pagamentos.html',
+    {
+        'pagamentos': pagamentos,
+        'status_choices': Pagamento.STATUS_CHOICES,
+    }
+)
+
+
+@login_required
+def atualizar_status_pagamento(request, id_pagamento):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    pagamento = get_object_or_404(
+        Pagamento,
+        id_pagamento=id_pagamento
+    )
+
+    if request.method == 'POST':
+        novo_status = request.POST.get('status_pagamento')
+
+        status_validos = [
+            'Pendente',
+            'Aprovado',
+            'Recusado',
+            'Estornado'
+        ]
+
+        if novo_status not in status_validos:
+            messages.error(request, 'Status de pagamento inválido.')
+            return redirect('listar_pagamentos')
+
+        pagamento.status_pagamento = novo_status
+
+        if novo_status == 'Aprovado':
+            pagamento.data_pagamento = timezone.now()
+
+        pagamento.save()
+
+        messages.success(request, 'Pagamento atualizado com sucesso.')
+
+    return redirect('listar_pagamentos')

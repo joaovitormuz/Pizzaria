@@ -5,20 +5,31 @@
 
 {% block content %}
 
-<h1>Confirmar Pedido</h1>
+<div class="container mt-4">
+    <h1 class="mb-4">Confirmar Pedido</h1>
 
-<form method="POST">
-    {% csrf_token %}
+    <div class="card shadow-sm">
+        <div class="card-body">
 
-    {{ form.as_p }}
+            <form method="POST">
+                {% csrf_token %}
 
-    <button type="submit">
-        Confirmar pedido
-    </button>
-</form>
+                {{ form.as_p }}
 
-<a href="{% url 'visualizar_carrinho' %}">
-    Voltar ao carrinho
-</a>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">
+                        Confirmar pedido
+                    </button>
+
+                    <a href="{% url 'visualizar_carrinho' %}"
+                       class="btn btn-secondary">
+                        Voltar ao carrinho
+                    </a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
 
 {% endblock %}

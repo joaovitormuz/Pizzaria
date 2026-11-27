@@ -254,5 +254,10 @@ urlpatterns = [
     views.registrar_movimentacao_caixa,
     name='registrar_movimentacao_caixa'
     ),
+    path(
+    'pizzaria/gerenciar/',
+    views.gerenciar_pizzaria,
+    name='gerenciar_pizzaria'
+    ),
     
 ]

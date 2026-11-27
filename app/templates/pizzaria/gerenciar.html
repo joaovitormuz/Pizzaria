@@ -1,0 +1,32 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Pizzaria{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header text-white" style="background-color: #a32121;">
+            <h4 class="mb-0">Dados da Pizzaria</h4>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-danger">
+                        Salvar Dados
+                    </button>
+
+                    <a href="{% url 'area_pizzaria' %}"
+                       class="btn btn-secondary">
+                        Voltar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

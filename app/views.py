@@ -12,7 +12,8 @@ from .models import Cliente, Pedido, Produto, ItemPedido
 from .forms import (
     ClienteForm,
     AdicionarProdutoForm,
-    ConfirmarPedidoForm
+    ConfirmarPedidoForm,
+    PizzariaForm
 )
 from .models import Cliente, Pedido, Produto, ItemPedido, Funcionario
 from .forms import (
@@ -25,7 +26,8 @@ from .forms import (
     EstoqueForm,
     ReceitaForm,
     ProdutoForm,
-    MovimentacaoCaixaForm
+    MovimentacaoCaixaForm,
+    Pizzaria
 )
 
 from .models import (
@@ -1603,6 +1605,37 @@ def atualizar_status_pagamento(request, id_pagamento):
 
     return redirect('listar_pagamentos')
 
+# =====================================================
+# Gerenciar Pizzaria
+# =====================================================
+@login_required
+def gerenciar_pizzaria(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    pizzaria = Pizzaria.objects.first()
+
+    if request.method == 'POST':
+        form = PizzariaForm(
+            request.POST,
+            instance=pizzaria
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'Dados da pizzaria atualizados com sucesso!'
+            )
+            return redirect('gerenciar_pizzaria')
+    else:
+        form = PizzariaForm(instance=pizzaria)
+
+    return render(
+        request,
+        'pizzaria/gerenciar.html',
+        {'form': form, 'pizzaria': pizzaria}
+    )
 # =====================================================
 # CONSULTAR CAIXA DA PIZZARIA
 # =====================================================

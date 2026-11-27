@@ -4,9 +4,27 @@ from django.forms import BaseFormSet, formset_factory
 from django.core.exceptions import ValidationError
 from .models import (
     Cliente, Funcionario, Entregador,
-    Ingrediente, Estoque, Receita, Produto, MovimentacaoCaixa
+    Ingrediente, Estoque, Receita, Produto, MovimentacaoCaixa, Pizzaria
 )
 
+
+class PizzariaForm(forms.ModelForm):
+    class Meta:
+        model = Pizzaria
+        fields = [
+            'nome',
+            'email',
+            'numero_telefone',
+            'endereco',
+            'horario_funcionamento'
+        ]
+        labels = {
+            'nome': 'Nome da Pizzaria',
+            'email': 'E-mail',
+            'numero_telefone': 'Telefone',
+            'endereco': 'Endereço',
+            'horario_funcionamento': 'Horário de Funcionamento'
+        }
 
 
 class ClienteForm(forms.ModelForm):

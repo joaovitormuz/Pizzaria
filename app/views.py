@@ -39,7 +39,8 @@ from .models import (
     Estoque,
     Receita,
     MovimentacaoEstoque,
-    Pagamento
+    Pagamento,
+    ProcessamentoPedido
 )
 
 
@@ -570,8 +571,6 @@ def listar_pedidos(request):
 # ATUALIZAR STATUS DO PEDIDO
 # =====================================================
 
-
-
 @login_required
 def atualizar_status_pedido(request, pk):
     if not acesso_administrativo(request.user):
@@ -602,7 +601,6 @@ def atualizar_status_pedido(request, pk):
                     novo_status == 'Em preparação'
                     and not pedido.estoque_baixado
                 ):
-
                     quantidades_necessarias = {}
 
                     itens = pedido.itens.select_related(
@@ -677,7 +675,7 @@ def atualizar_status_pedido(request, pk):
                                 f'Disponível: {estoque.quantidade_estoque}.'
                             )
 
-                    # Realiza a baixa e registra cada saída
+                    # Realiza a baixa dos ingredientes
                     for ingrediente_id, quantidade in quantidades_necessarias.items():
 
                         estoque = estoques_por_ingrediente[ingrediente_id]
@@ -691,7 +689,8 @@ def atualizar_status_pedido(request, pk):
                             ]
                         )
 
-                    MovimentacaoEstoque.objects.create(
+                        # Registra cada saída de estoque
+                        MovimentacaoEstoque.objects.create(
                             ingrediente=estoque.ingrediente,
                             tipo='saida',
                             quantidade=quantidade,
@@ -718,6 +717,46 @@ def atualizar_status_pedido(request, pk):
                     ]
                 )
 
+                # Gerencia o processamento do pedido
+                if novo_status == 'Em preparação':
+
+                    funcionario = Funcionario.objects.filter(
+                        pk=request.user.pk
+                    ).first()
+
+                    if funcionario is None:
+                        raise ValueError(
+                            'O usuário responsável precisa estar '
+                            'cadastrado como funcionário.'
+                        )
+
+                    processamento = ProcessamentoPedido.objects.filter(
+                        pedido=pedido
+                    ).first()
+
+                    if processamento is None:
+                        ProcessamentoPedido.objects.create(
+                            pedido=pedido,
+                            funcionario=funcionario,
+                            data_inicio=timezone.now(),
+                            status_preparacao='Em preparação'
+                        )
+                    else:
+                        processamento.atualizarStatus(
+                            'Em preparação'
+                        )
+
+                elif novo_status == 'Pronto':
+
+                    processamento = ProcessamentoPedido.objects.filter(
+                        pedido=pedido
+                    ).first()
+
+                    if processamento:
+                        processamento.atualizarStatus(
+                            'Finalizado'
+                        )
+
             messages.success(
                 request,
                 f'Status do pedido #{pedido.id_pedido} atualizado!'
@@ -729,6 +768,24 @@ def atualizar_status_pedido(request, pk):
     return redirect('listar_pedidos')
 
 
+# =====================================================
+# Consultar Processamento do Pedido
+# =====================================================
+@login_required
+def listar_processamentos(request):
+    if not acesso_administrativo(request.user):
+        return HttpResponseForbidden('Acesso negado.')
+
+    processamentos = ProcessamentoPedido.objects.select_related(
+        'pedido',
+        'funcionario'
+    ).all().order_by('-data_inicio')
+
+    return render(
+        request,
+        'processamentos/listar_processamentos.html',
+        {'processamentos': processamentos}
+    )
 # =====================================================
 # CANCELAR PEDIDO
 # =====================================================

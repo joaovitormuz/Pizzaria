@@ -2,6 +2,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 
 
 # =====================================================
@@ -577,11 +578,24 @@ class ProcessamentoPedido(models.Model):
 
     observacao = models.TextField(blank=True)
 
-    def atualizarStatus(self):
-        pass
+    def atualizarStatus(self, novo_status):
+     if novo_status not in dict(self.STATUS_CHOICES):
+        raise ValueError('Status de preparação inválido.')
+
+     self.status_preparacao = novo_status
+
+     if novo_status == 'Em preparação' and not self.data_inicio:
+        self.data_inicio = timezone.now()
+
+     if novo_status == 'Finalizado':
+        self.finalizarPreparo()
+
+     self.save()
+
 
     def finalizarPreparo(self):
-        pass
+     self.status_preparacao = 'Finalizado'
+     self.data_fim = timezone.now()
 
     def __str__(self):
         return f'Processamento do pedido {self.pedido.id_pedido}'

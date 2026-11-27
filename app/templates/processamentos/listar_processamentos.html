@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Processamento de Pedidos</h2>
+
+    <table class="table table-striped table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Pedido</th>
+                <th>Funcionário</th>
+                <th>Status</th>
+                <th>Início</th>
+                <th>Término</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for processamento in processamentos %}
+            <tr>
+                <td>{{ processamento.id_processamento }}</td>
+                <td>#{{ processamento.pedido.id_pedido }}</td>
+                <td>{{ processamento.funcionario }}</td>
+                <td>{{ processamento.status_preparacao }}</td>
+                <td>
+                    {{ processamento.data_inicio|date:"d/m/Y H:i" }}
+                </td>
+                <td>
+                    {% if processamento.data_fim %}
+                        {{ processamento.data_fim|date:"d/m/Y H:i" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">
+                    Nenhum processamento cadastrado.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+{% endblock %}
+```

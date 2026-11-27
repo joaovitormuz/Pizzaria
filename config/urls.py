@@ -239,5 +239,10 @@ urlpatterns = [
     views.atualizar_status_pagamento,
     name='atualizar_status_pagamento'
     ),
+    path(
+    'processamentos/',
+    views.listar_processamentos,
+    name='listar_processamentos'
+    ),
     
 ]
